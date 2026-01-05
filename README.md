@@ -13,6 +13,7 @@
 - 📋 **Session Management**: /recap → /focus → /td workflow
 - 🔗 **GitHub Integration**: สร้าง Issues + PRs อัตโนมัติ
 - ✅ **Code Review**: /review ก่อน push
+- 🔔 **Notification Hooks**: แจ้งเตือนเมื่อ Claude ต้องการ input (รองรับ Multi-Tab Workflow)
 
 ## Quick Start
 
@@ -262,8 +263,13 @@ grep -l "type: decision" docs/retrospective/**/*.md
 ```
 knowledge-management-skill/
 ├── SKILL.md                    # Main skill definition
+├── hooks.json                  # Hook configurations (Notification, Stop)
 ├── scripts/
-│   └── init.sh                 # Project setup script
+│   ├── init.sh                 # Project setup script
+│   ├── auto-capture.sh         # Auto session capture
+│   ├── ai-capture.sh           # AI-powered capture
+│   ├── claude-wrap.sh          # Claude wrapper
+│   └── notify.sh               # macOS notification script
 ├── references/
 │   ├── mem-template.md         # Full /mem template
 │   ├── distill-template.md     # Full /distill template
@@ -277,9 +283,9 @@ knowledge-management-skill/
         ├── td.md
         ├── improve.md
         ├── commit.md
-        ├── focus.md            # NEW
-        ├── recap.md            # NEW
-        └── review.md           # NEW
+        ├── focus.md
+        ├── recap.md
+        └── review.md
 ```
 
 ## GitHub Integration
@@ -353,6 +359,98 @@ Fixes #issue_number
 | Structure | Fixed | ✅ Customizable |
 | Dependency | Plugin required | ✅ Just markdown |
 | GitHub Integration | ❌ | ✅ Issues + PRs |
+
+## Notification Hooks (Multi-Tab Workflow)
+
+รองรับการทำงานแบบ Multi-Tab ตามแนวทางของ Boris Cherny (ผู้สร้าง Claude Code) - เปิดหลาย terminal tabs พร้อมกัน และรับ notification เมื่อ tab ใดต้องการ input
+
+### Notification Types
+
+| Type | เมื่อไหร่ | Sound |
+|------|----------|-------|
+| `idle_prompt` | Claude รอ input นานเกิน 60 วินาที | Ping |
+| `permission_prompt` | ต้องการ permission | Basso |
+| `elicitation_dialog` | MCP tool ต้องการข้อมูลเพิ่ม | Purr |
+
+### Setup
+
+เพิ่มใน `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [{
+          "type": "command",
+          "command": "~/.claude/skills/claude-km-skill/scripts/notify.sh"
+        }]
+      },
+      {
+        "matcher": "permission_prompt",
+        "hooks": [{
+          "type": "command",
+          "command": "~/.claude/skills/claude-km-skill/scripts/notify.sh"
+        }]
+      },
+      {
+        "matcher": "elicitation_dialog",
+        "hooks": [{
+          "type": "command",
+          "command": "~/.claude/skills/claude-km-skill/scripts/notify.sh"
+        }]
+      }
+    ]
+  }
+}
+```
+
+### Multi-Tab Workflow
+
+```
+┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐
+│  Tab 1  │  │  Tab 2  │  │  Tab 3  │  │  Tab 4  │  │  Tab 5  │
+│ Feature │  │ Bug Fix │  │Refactor │  │  Tests  │  │  Docs   │
+└────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘
+     │            │            │            │            │
+     └────────────┴─────┬──────┴────────────┴────────────┘
+                        │
+                        ▼
+              🔔 macOS Notification
+              "Tab X needs your input"
+                        │
+                        ▼
+                 สลับไป Tab นั้น
+```
+
+### ใช้ร่วมกับ Git Worktrees
+
+```bash
+# สร้าง worktree สำหรับแต่ละ tab
+git worktree add ../project-feature-a -b feature-a
+git worktree add ../project-bugfix -b bugfix-123
+
+# Tab 1: cd ../project-feature-a && claude
+# Tab 2: cd ../project-bugfix && claude
+```
+
+### Test Notification
+
+```bash
+echo '{"notification_type": "idle_prompt", "cwd": "/test"}' | \
+  ~/.claude/skills/claude-km-skill/scripts/notify.sh
+```
+
+### Optional: terminal-notifier
+
+สำหรับ notification ที่ดีกว่า (clickable, groupable):
+
+```bash
+brew install terminal-notifier
+```
+
+---
 
 ## Auto-Capture
 
