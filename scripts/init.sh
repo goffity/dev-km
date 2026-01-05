@@ -4,7 +4,36 @@
 
 set -e
 
-PROJECT_ROOT="${1:-.}"
+# Validate path to prevent path traversal attacks
+validate_path() {
+    local path="$1"
+
+    # Reject paths containing .. (path traversal)
+    if [[ "$path" == *".."* ]]; then
+        echo "❌ Error: Path cannot contain '..'" >&2
+        exit 1
+    fi
+
+    # Resolve to absolute path
+    local resolved_path
+    resolved_path=$(cd "$path" 2>/dev/null && pwd) || {
+        # If directory doesn't exist, check parent
+        local parent_dir=$(dirname "$path")
+        if [ "$parent_dir" != "." ] && [ "$parent_dir" != "/" ]; then
+            resolved_path=$(cd "$parent_dir" 2>/dev/null && pwd)/$(basename "$path") || {
+                echo "❌ Error: Invalid path '$path'" >&2
+                exit 1
+            }
+        else
+            resolved_path="$path"
+        fi
+    }
+
+    echo "$resolved_path"
+}
+
+RAW_PROJECT_ROOT="${1:-.}"
+PROJECT_ROOT=$(validate_path "$RAW_PROJECT_ROOT")
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_ROOT="$(dirname "$SCRIPT_DIR")"
 

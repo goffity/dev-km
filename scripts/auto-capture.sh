@@ -8,7 +8,28 @@
 
 set -e
 
-PROJECT_ROOT="${1:-.}"
+# Validate path to prevent path traversal attacks
+validate_path() {
+    local path="$1"
+
+    # Reject paths containing .. (path traversal)
+    if [[ "$path" == *".."* ]]; then
+        echo "❌ Error: Path cannot contain '..'" >&2
+        exit 1
+    fi
+
+    # Resolve to absolute path
+    local resolved_path
+    resolved_path=$(cd "$path" 2>/dev/null && pwd) || {
+        echo "❌ Error: Invalid path '$path'" >&2
+        exit 1
+    }
+
+    echo "$resolved_path"
+}
+
+RAW_PROJECT_ROOT="${1:-.}"
+PROJECT_ROOT=$(validate_path "$RAW_PROJECT_ROOT")
 FORCE_CAPTURE=false
 
 # Parse arguments

@@ -2,16 +2,41 @@
 # Claude Code Notification Script
 # Sends macOS notifications when Claude needs attention
 
+set -e
+
+# Sanitize string for AppleScript (escape backslashes and double quotes)
+sanitize_for_applescript() {
+    local input="$1"
+    # Remove any characters that could break AppleScript
+    # Allow only alphanumeric, spaces, and basic punctuation
+    echo "$input" | tr -cd '[:alnum:][:space:]._-:()' | cut -c1-100
+}
+
+# Validate notification type (whitelist approach)
+validate_notification_type() {
+    local type="$1"
+    case "$type" in
+        idle_prompt|permission_prompt|auth_success|elicitation_dialog)
+            echo "$type"
+            ;;
+        *)
+            echo "unknown"
+            ;;
+    esac
+}
+
 # Read JSON input from stdin
 INPUT=$(cat)
 
-# Parse notification type from hook input
-NOTIFICATION_TYPE=$(echo "$INPUT" | jq -r '.notification_type // "unknown"')
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' | cut -c1-8)
+# Parse and validate notification type from hook input
+RAW_TYPE=$(echo "$INPUT" | jq -r '.notification_type // "unknown"')
+NOTIFICATION_TYPE=$(validate_notification_type "$RAW_TYPE")
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' | cut -c1-8 | tr -cd '[:alnum:]')
 
 # Get current working directory name for context
 CWD=$(echo "$INPUT" | jq -r '.cwd // ""')
-PROJECT_NAME=$(basename "$CWD" 2>/dev/null || echo "Claude Code")
+RAW_PROJECT_NAME=$(basename "$CWD" 2>/dev/null || echo "Claude Code")
+PROJECT_NAME=$(sanitize_for_applescript "$RAW_PROJECT_NAME")
 
 # Notification messages based on type
 case "$NOTIFICATION_TYPE" in
@@ -42,12 +67,16 @@ case "$NOTIFICATION_TYPE" in
         ;;
 esac
 
+# Sanitize message and title before sending to osascript
+SAFE_TITLE=$(sanitize_for_applescript "$TITLE")
+SAFE_MESSAGE=$(sanitize_for_applescript "$MESSAGE")
+
 # Send macOS notification
-osascript -e "display notification \"$MESSAGE\" with title \"$TITLE\" sound name \"$SOUND\""
+osascript -e "display notification \"$SAFE_MESSAGE\" with title \"$SAFE_TITLE\" sound name \"$SOUND\""
 
 # Optional: Also send to terminal-notifier if available (for better action support)
 if command -v terminal-notifier &> /dev/null; then
-    terminal-notifier -title "$TITLE" -message "$MESSAGE" -sound "$SOUND" -group "claude-code-$SESSION_ID"
+    terminal-notifier -title "$SAFE_TITLE" -message "$SAFE_MESSAGE" -sound "$SOUND" -group "claude-code-$SESSION_ID"
 fi
 
 exit 0

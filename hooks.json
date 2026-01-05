@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f docs/retrospective/$(date +%Y-%m)/retrospective_$(date +%Y-%m-%d)_*.md ] && ~/.claude/skills/knowledge-management/scripts/auto-capture.sh . 2>/dev/null || true"
+            "command": "[ ! -f docs/retrospective/$(date +%Y-%m)/retrospective_$(date +%Y-%m-%d)_*.md ] && ~/.claude/skills/claude-km-skill/scripts/auto-capture.sh . 2>/dev/null || true"
           }
         ]
       }
