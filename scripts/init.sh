@@ -20,13 +20,16 @@ mkdir -p "$PROJECT_ROOT/docs/retrospective"
 mkdir -p "$PROJECT_ROOT/docs/auto-captured"
 mkdir -p "$PROJECT_ROOT/.claude/commands"
 
-# Copy command files from assets
+# Copy command files from assets (all .md files except README.md)
 echo "📄 Copying command files..."
 if [ -d "$SKILL_ROOT/assets/commands" ]; then
-    cp "$SKILL_ROOT/assets/commands/mem.md" "$PROJECT_ROOT/.claude/commands/"
-    cp "$SKILL_ROOT/assets/commands/distill.md" "$PROJECT_ROOT/.claude/commands/"
-    cp "$SKILL_ROOT/assets/commands/td.md" "$PROJECT_ROOT/.claude/commands/"
-    cp "$SKILL_ROOT/assets/commands/improve.md" "$PROJECT_ROOT/.claude/commands/"
+    for file in "$SKILL_ROOT/assets/commands"/*.md; do
+        filename=$(basename "$file")
+        if [ "$filename" != "README.md" ]; then
+            cp "$file" "$PROJECT_ROOT/.claude/commands/"
+            echo "   - $filename"
+        fi
+    done
 fi
 
 # Create .gitkeep files
