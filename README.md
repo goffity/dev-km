@@ -10,6 +10,9 @@
 - 📁 **Git-Tracked**: Version control ทุก knowledge
 - 🔧 **Portable**: ใช้ได้กับทุก AI tool ที่อ่าน markdown
 - 🤖 **Auto-Capture**: บันทึก session อัตโนมัติ พร้อม AI analysis
+- 📋 **Session Management**: /recap → /focus → /td workflow
+- 🔗 **GitHub Integration**: สร้าง Issues + PRs อัตโนมัติ
+- ✅ **Code Review**: /review ก่อน push
 
 ## Quick Start
 
@@ -40,45 +43,112 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 
 ## Commands
 
+### Session Management
+
+| Command | Purpose | Usage |
+|---------|---------|-------|
+| `/recap` | เริ่ม session - โหลด context เดิม | `/recap` |
+| `/focus [task]` | ตั้ง focus + สร้าง GitHub issue | `/focus Implement feature X` |
+| `/td [status]` | จบ session: test + review + PR | `/td done` |
+
+### Git & Code
+
+| Command | Purpose | Usage |
+|---------|---------|-------|
+| `/commit` | Atomic commits (via TDG) | `/commit` |
+| `/review` | Manual code review | `/review` |
+
+### Knowledge Capture (4-Layer)
+
 | Command | Layer | Purpose | Output |
 |---------|-------|---------|--------|
 | `/mem [topic]` | 1 | Quick capture ระหว่างงาน | `docs/learnings/YYYY-MM/DD/HH.MM_slug.md` |
 | `/distill [topic]` | 2 | Extract patterns | `docs/knowledge-base/[topic].md` |
 | `/td` | 3 | Post-task retrospective | `docs/retrospective/YYYY-MM/retrospective_*.md` |
 | `/improve` | 4 | Work on pending items | Implementation |
-| `/commit` | - | Atomic commits via TDG | Git commits |
 
-## Workflow
+## Session Lifecycle
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         Workflow                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   ทำงาน ──→ พบ insight ──→ /mem                             │
-│                              │                              │
-│                              ▼                              │
-│                    docs/learnings/ (Layer 1)                │
-│                              │                              │
-│                              │ มี 3+ learnings              │
-│                              ▼                              │
-│                         /distill                            │
-│                              │                              │
-│                              ▼                              │
-│                  docs/knowledge-base/ (Layer 2)             │
-│                              │                              │
-│                              │ จบ task                      │
-│                              ▼                              │
-│                           /td                               │
-│                              │                              │
-│                              ▼                              │
-│                  docs/retrospective/ (Layer 3)              │
-│                              │                              │
-│                              │ พร้อม implement              │
-│                              ▼                              │
-│                        /improve (Layer 4)                   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        SESSION START                            │
+└─────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │      /recap         │
+                    │  โหลด context เดิม   │
+                    └─────────────────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │      /focus         │
+                    │  ตั้งงาน + สร้าง issue │
+                    └─────────────────────┘
+                               │
+                               ▼
+              ┌────────────────────────────────┐
+              │         ทำงาน                   │
+              │  /mem - บันทึก insight         │
+              │  /commit - atomic commits      │
+              │  /review - manual code review  │
+              └────────────────────────────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │        /td          │
+                    │  test + review      │
+                    │  comment issue      │
+                    │  create PR          │
+                    └─────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        SESSION END                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Quick Start Workflow
+
+```bash
+# 1. เริ่ม session
+/recap                          # โหลด context + state เดิม
+
+# 2. ตั้ง focus + สร้าง issue
+/focus Implement feature X      # จะถามรายละเอียด (Overview, Technical Details, etc.)
+
+# 3. ทำงาน...
+/mem "JWT refresh pattern"      # บันทึก insight ระหว่างทาง
+/commit                         # commit เมื่อเสร็จ chunk
+
+# 4. จบ session
+/td done                        # test + review + comment issue + สร้าง PR
+```
+
+## Knowledge Layer Workflow
+
+```
+                    ระหว่างทำงาน
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 1: /mem                                                  │
+│  Quick capture → docs/learnings/YYYY-MM/DD/HH.MM_slug.md       │
+└─────────────────────────────────────────────────────────────────┘
+                         │
+                         │ (เมื่อมี 3+ learnings เรื่องเดียวกัน)
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 2: /distill                                              │
+│  Extract patterns → docs/knowledge-base/topic.md               │
+└─────────────────────────────────────────────────────────────────┘
+                         │
+                         │ (periodic review)
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 4: /improve                                              │
+│  Work on pending items from knowledge-base + retrospectives    │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Before/After Context
@@ -113,6 +183,30 @@ Feature เด่นจาก Claude-Mem ที่ช่วยให้เข้
 | `config` | Configuration changes |
 | `docs` | Documentation only |
 
+## State Machine
+
+```
+          /focus
+ready ─────────────▶ working ──/td done──▶ completed
+  ▲                     │                      │
+  │                     │ /td pending          │
+  │ /focus new          ▼                      │
+  └───────────────── pending ◀────────────────┘
+                        │        /focus new task
+                        │
+                        │ /td blocked
+                        ▼
+                     blocked
+```
+
+| State | Meaning | Next Action |
+|-------|---------|-------------|
+| `ready` | ว่าง รอ task | `/focus` เพื่อตั้งงาน |
+| `working` | กำลังทำ | `/td` เมื่อจบ |
+| `pending` | รอทำต่อ | `/recap` แล้ว `/focus` |
+| `blocked` | ติดปัญหา | แก้ปัญหาก่อน |
+| `completed` | เสร็จแล้ว | `/focus` งานใหม่ |
+
 ## Directory Structure
 
 ```
@@ -123,17 +217,28 @@ project/
 │       ├── distill.md
 │       ├── td.md
 │       ├── improve.md
-│       └── commit.md
+│       ├── commit.md
+│       ├── focus.md        # NEW: Set focus + create issue
+│       ├── recap.md        # NEW: Session context recovery
+│       └── review.md       # NEW: Code review
 └── docs/
+    ├── current.md           # Current focus state
+    ├── WIP.md               # Work in progress (paused tasks)
+    ├── logs/
+    │   └── activity.log     # Activity history
     ├── learnings/           # Layer 1: Quick capture
     │   └── YYYY-MM/
     │       └── DD/
     │           └── HH.MM_slug.md
     ├── knowledge-base/      # Layer 2: Curated patterns
     │   └── [topic].md
-    └── retrospective/       # Layer 3: Full reviews
+    ├── retrospective/       # Layer 3: Full reviews
+    │   └── YYYY-MM/
+    │       └── retrospective_YYYY-MM-DD_hhmmss.md
+    └── auto-captured/       # Auto-captured sessions
         └── YYYY-MM/
-            └── retrospective_YYYY-MM-DD_hhmmss.md
+            └── DD/
+                └── HH.MM_session-*.md
 ```
 
 ## Search
@@ -166,11 +271,76 @@ knowledge-management-skill/
 │   └── improve-workflow.md     # /improve workflow
 └── assets/
     └── commands/               # Slash command files
+        ├── README.md           # Commands documentation
         ├── mem.md
         ├── distill.md
         ├── td.md
-        └── improve.md
+        ├── improve.md
+        ├── commit.md
+        ├── focus.md            # NEW
+        ├── recap.md            # NEW
+        └── review.md           # NEW
 ```
+
+## GitHub Integration
+
+`/focus` และ `/td` integrate กับ GitHub โดยอัตโนมัติ:
+
+### Issue Format (/focus)
+
+```markdown
+## Overview
+Brief description of the feature/bug.
+
+## Current State
+What exists now.
+
+## Proposed Solution
+What should be implemented.
+
+## Technical Details
+- Components affected
+- Implementation approach
+
+## Acceptance Criteria
+- [ ] Specific testable criteria
+- [ ] Performance requirements
+```
+
+### PR Format (/td)
+
+```markdown
+## Summary
+Brief summary of the changes made.
+
+## Changes Made
+- List of key changes.
+
+## Testing
+- Description of tests performed.
+
+## Related Issues
+- #issue_number
+
+Fixes #issue_number
+```
+
+### Pre-Push Checklist
+
+| Check | Command | Required |
+|-------|---------|----------|
+| Tests | `make test` | Must pass |
+| Build | `make build` | Must pass |
+| Code Review | `/review` | No critical issues |
+
+### Forbidden Actions
+
+| Action | Reason |
+|--------|--------|
+| Merge PR | ต้องรอ reviewer approve |
+| Close Issue | จะปิดอัตโนมัติเมื่อ PR merge |
+| Force Push | อันตราย ห้ามใช้ |
+| Skip Tests | ต้อง pass ก่อน push |
 
 ## Why Not Claude-Mem?
 
@@ -182,6 +352,7 @@ knowledge-management-skill/
 | Editable | Limited | ✅ Full control |
 | Structure | Fixed | ✅ Customizable |
 | Dependency | Plugin required | ✅ Just markdown |
+| GitHub Integration | ❌ | ✅ Issues + PRs |
 
 ## Auto-Capture
 
