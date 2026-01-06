@@ -277,17 +277,24 @@ knowledge-management-skill/
 │   ├── td-template.md          # Full /td template
 │   └── improve-workflow.md     # /improve workflow
 └── assets/
-    └── commands/               # Slash command files
-        ├── README.md           # Commands documentation
-        ├── mem.md
-        ├── distill.md
-        ├── td.md
-        ├── improve.md
-        ├── commit.md
-        ├── focus.md
-        ├── recap.md
-        ├── review.md
-        └── permission.md       # Permission management
+    ├── commands/               # Slash command files
+    │   ├── README.md           # Commands documentation
+    │   ├── mem.md
+    │   ├── distill.md
+    │   ├── td.md
+    │   ├── improve.md
+    │   ├── commit.md
+    │   ├── focus.md
+    │   ├── recap.md
+    │   ├── review.md
+    │   └── permission.md       # Permission management
+    └── agents/                 # Subagent definitions
+        ├── code-reviewer.md
+        ├── code-simplifier.md
+        ├── security-auditor.md
+        ├── knowledge-curator.md
+        ├── session-analyzer.md
+        └── build-validator.md
 ```
 
 ## GitHub Integration
@@ -532,6 +539,47 @@ See [AUTO-CAPTURE.md](AUTO-CAPTURE.md) for full documentation.
 | `auto-capture.sh` | Path validation |
 | `ai-capture.sh` | Path validation |
 | `notify.sh` | Input sanitization, type whitelist |
+
+## Subagents
+
+ตามแนวทาง [Boris Cherny](https://twitter.com/bcherny) - ใช้ subagents เพื่อ automate workflows ที่ทำบ่อยๆ
+
+### Available Subagents
+
+| Agent | Purpose | When to Use |
+|-------|---------|-------------|
+| `code-reviewer` | Review code หา bugs, security, performance | ก่อน commit/push |
+| `code-simplifier` | Simplify code หลังเขียนเสร็จ | หลัง coding |
+| `security-auditor` | ตรวจสอบ security vulnerabilities | ก่อน push |
+| `knowledge-curator` | Scan learnings → แนะนำ distill topics | Weekly review |
+| `session-analyzer` | สร้าง retrospective draft | จบ session |
+| `build-validator` | ตรวจสอบ build + tests + lint | ก่อน push |
+
+### Usage
+
+เรียกใช้ subagent ผ่าน Task tool:
+
+```
+Use the code-reviewer agent to review my changes
+```
+
+หรือใช้กับ commands:
+- `/review` - ใช้ code-reviewer agent
+- `/td` - ใช้ session-analyzer และ build-validator
+
+### Location
+
+Agents ถูกติดตั้งที่ `.claude/agents/` ใน project:
+
+```
+.claude/agents/
+├── code-reviewer.md
+├── code-simplifier.md
+├── security-auditor.md
+├── knowledge-curator.md
+├── session-analyzer.md
+└── build-validator.md
+```
 
 ## Contributing
 

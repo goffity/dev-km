@@ -49,6 +49,7 @@ mkdir -p "$PROJECT_ROOT/docs/retrospective"
 mkdir -p "$PROJECT_ROOT/docs/auto-captured"
 mkdir -p "$PROJECT_ROOT/.claude/commands"
 mkdir -p "$PROJECT_ROOT/.claude/scripts"
+mkdir -p "$PROJECT_ROOT/.claude/agents"
 
 # Copy command files from assets (all .md files except README.md)
 echo "📄 Copying command files..."
@@ -77,6 +78,18 @@ if [ -f "$SKILL_ROOT/hooks.json" ]; then
     echo "   - hooks.example.json"
 fi
 
+# Copy agent files
+echo "🤖 Copying agents..."
+if [ -d "$SKILL_ROOT/assets/agents" ]; then
+    for file in "$SKILL_ROOT/assets/agents"/*.md; do
+        if [ -f "$file" ]; then
+            filename=$(basename "$file")
+            cp "$file" "$PROJECT_ROOT/.claude/agents/"
+            echo "   - $filename"
+        fi
+    done
+fi
+
 # Create .gitkeep files
 touch "$PROJECT_ROOT/docs/learnings/.gitkeep"
 touch "$PROJECT_ROOT/docs/knowledge-base/.gitkeep"
@@ -90,6 +103,7 @@ echo "📂 Structure created:"
 echo "   $PROJECT_ROOT/"
 echo "   ├── .claude/"
 echo "   │   ├── commands/        (slash commands)"
+echo "   │   ├── agents/          (subagents)"
 echo "   │   ├── scripts/         (notify.sh)"
 echo "   │   └── hooks.example.json"
 echo "   └── docs/"
@@ -113,3 +127,11 @@ echo "   /improve         - Work on pending items"
 echo ""
 echo "🔔 Notifications:"
 echo "   notify.sh sends macOS notifications when Claude needs attention"
+echo ""
+echo "🤖 Subagents:"
+echo "   code-reviewer     - Review code for bugs, security, performance"
+echo "   code-simplifier   - Simplify code after writing"
+echo "   security-auditor  - Security vulnerability audit"
+echo "   knowledge-curator - Suggest topics to distill"
+echo "   session-analyzer  - Create retrospective drafts"
+echo "   build-validator   - Validate build, tests, lint"
