@@ -58,6 +58,7 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 |---------|---------|-------|
 | `/commit` | Atomic commits (via TDG) | `/commit` |
 | `/review` | Manual code review | `/review` |
+| `/permission` | จัดการ permissions - pre-allow safe commands | `/permission suggest` |
 
 ### Knowledge Capture (4-Layer)
 
@@ -285,7 +286,8 @@ knowledge-management-skill/
         ├── commit.md
         ├── focus.md
         ├── recap.md
-        └── review.md
+        ├── review.md
+        └── permission.md       # Permission management
 ```
 
 ## GitHub Integration
