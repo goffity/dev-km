@@ -83,6 +83,7 @@
 |---------|-------------|-------|
 | `/commit` | Atomic commit (via tdg:atomic) | `/commit` |
 | `/review` | Manual code review | `/review` |
+| `/permission` | จัดการ permissions - pre-allow safe commands | `/permission suggest` |
 
 ### Knowledge Capture
 
@@ -303,6 +304,66 @@ docs/
 /distill error-handling               # รวม learnings เป็น knowledge
 /improve                              # ทำ pending improvements
 ```
+
+---
+
+## Permission Management
+
+ใช้ `/permission` เพื่อ pre-allow safe commands แทน `--dangerously-skip-permissions` (ตามแนวทาง Boris Cherny)
+
+### Usage
+
+```bash
+/permission              # แสดง permissions ปัจจุบัน + แนะนำ
+/permission show         # แสดง permissions ทั้งหมด
+/permission suggest      # แนะนำ permissions ตาม project type
+/permission add [type]   # เพิ่ม permissions ตาม preset
+```
+
+### Available Presets
+
+| Preset | Commands |
+|--------|----------|
+| `node` | npm, bun, pnpm, yarn |
+| `go` | go build, test, mod, fmt |
+| `python` | pip, pytest, poetry, uv, ruff |
+| `rust` | cargo commands |
+| `make` | make targets |
+| `docker` | docker, docker-compose |
+| `git` | safe git operations |
+| `gh` | GitHub CLI |
+| `common` | ls, cat, grep, find, jq |
+
+### Example: Node.js Project
+
+```bash
+/permission suggest
+# เลือก: node,git,gh,common
+```
+
+จะสร้าง `.claude/settings.local.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run test:*)",
+      "Bash(npm run build:*)",
+      "Bash(bun test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(gh pr:*)",
+      "Bash(gh issue:*)"
+    ]
+  }
+}
+```
+
+### Best Practice
+
+- ใช้ `settings.local.json` สำหรับ project → share กับ team ได้
+- ใช้ `~/.claude/settings.json` สำหรับ global deny → ป้องกัน force commands
 
 ---
 
