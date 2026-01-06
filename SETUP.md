@@ -48,10 +48,10 @@ gh repo create knowledge-management-skill --public --source=. --push
 
 ```bash
 # Clone ไปที่ Claude skills directory
-git clone https://github.com/YOUR_USERNAME/knowledge-management-skill.git ~/.claude/skills/knowledge-management
+git clone https://github.com/YOUR_USERNAME/claude-km-skill.git ~/.claude/skills/claude-km-skill
 
 # หรือ add เป็น git submodule ใน project
-git submodule add https://github.com/YOUR_USERNAME/knowledge-management-skill.git .claude/skills/knowledge-management
+git submodule add https://github.com/YOUR_USERNAME/claude-km-skill.git .claude/skills/claude-km-skill
 ```
 
 ### Share with Team
@@ -61,27 +61,34 @@ git submodule add https://github.com/YOUR_USERNAME/knowledge-management-skill.gi
 ```markdown
 ## Knowledge Management
 
-This project uses [Knowledge Management Skill](https://github.com/YOUR_USERNAME/knowledge-management-skill) for capturing development knowledge.
+This project uses [Claude KM Skill](https://github.com/YOUR_USERNAME/claude-km-skill) for capturing development knowledge.
 
 ### Setup
 
 \`\`\`bash
-git clone https://github.com/YOUR_USERNAME/knowledge-management-skill.git ~/.claude/skills/knowledge-management
-~/.claude/skills/knowledge-management/scripts/init.sh .
+git clone https://github.com/YOUR_USERNAME/claude-km-skill.git ~/.claude/skills/claude-km-skill
+~/.claude/skills/claude-km-skill/scripts/init.sh .
 \`\`\`
 ```
 
 ## Repository Structure
 
 ```
-knowledge-management-skill/
+claude-km-skill/
 ├── .git/                       # Git history
 ├── .gitignore
 ├── LICENSE                     # MIT
 ├── README.md                   # Documentation
 ├── SKILL.md                    # Skill definition
+├── SETUP.md                    # This file
+├── AUTO-CAPTURE.md             # Auto-capture documentation
+├── hooks.json                  # Hook configurations
 ├── scripts/
-│   └── init.sh                 # Setup script
+│   ├── init.sh                 # Setup script (with path validation)
+│   ├── auto-capture.sh         # Auto session capture
+│   ├── ai-capture.sh           # AI-powered capture
+│   ├── claude-wrap.sh          # Claude wrapper
+│   └── notify.sh               # macOS notification (with input sanitization)
 ├── references/
 │   ├── mem-template.md
 │   ├── distill-template.md
@@ -89,8 +96,13 @@ knowledge-management-skill/
 │   └── improve-workflow.md
 └── assets/
     └── commands/
+        ├── README.md
         ├── mem.md
         ├── distill.md
         ├── td.md
-        └── improve.md
+        ├── improve.md
+        ├── commit.md
+        ├── focus.md
+        ├── recap.md
+        └── review.md
 ```

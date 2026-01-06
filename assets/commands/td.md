@@ -316,6 +316,39 @@ EOF
 3. ใช้ `/focus` เพื่อเริ่มงานใหม่
 ```
 
+### Step 14: Check Documentation Updates
+
+**ตรวจสอบว่าต้อง update เอกสารหรือไม่:**
+
+หลังจากทำ retrospective ให้ตรวจสอบว่าการเปลี่ยนแปลงที่ทำไปต้อง update เอกสารเหล่านี้หรือไม่:
+
+| File | Check When |
+|------|------------|
+| `README.md` | เพิ่ม feature ใหม่, เปลี่ยน API, เปลี่ยน structure |
+| `SETUP.md` | เปลี่ยนขั้นตอนการติดตั้ง |
+| `SKILL.md` | เปลี่ยน skill definition |
+| `CLAUDE.md` | เปลี่ยน rules หรือ conventions |
+| `assets/commands/*.md` | เปลี่ยน command behavior |
+
+**ถ้าพบว่าต้อง update:**
+
+1. ระบุไฟล์ที่ต้อง update
+2. อธิบายสิ่งที่ต้องเปลี่ยน
+3. ถามผู้ใช้ว่าต้องการให้ update เลยหรือไม่
+
+```markdown
+📝 **Documentation Check**
+
+การเปลี่ยนแปลงนี้อาจต้อง update เอกสาร:
+
+| File | Reason |
+|------|--------|
+| `README.md` | [reason] |
+| `SETUP.md` | [reason] |
+
+ต้องการให้ update เอกสารเลยไหม?
+```
+
 ## Pre-Push Checklist
 
 | Check | Command | Required |
@@ -453,6 +486,7 @@ files_changed:
 - [ ] Acceptance criteria met
 - [ ] PR created and linked to issue
 - [ ] Comment added to issue
+- [ ] Documentation updated (if needed)
 ```
 
 ## Related Commands

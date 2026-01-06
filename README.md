@@ -466,7 +466,7 @@ brew install terminal-notifier
       "matcher": "",
       "hooks": [{
         "type": "command",
-        "command": "[ ! -f docs/retrospective/$(date +%Y-%m)/retrospective_$(date +%Y-%m-%d)_*.md ] && ~/.claude/skills/knowledge-management/scripts/auto-capture.sh . 2>/dev/null || true"
+        "command": "[ ! -f docs/retrospective/$(date +%Y-%m)/retrospective_$(date +%Y-%m-%d)_*.md ] && ~/.claude/skills/claude-km-skill/scripts/auto-capture.sh . 2>/dev/null || true"
       }]
     }]
   }
@@ -479,7 +479,7 @@ brew install terminal-notifier
 
 ```bash
 # Add alias
-alias claude='~/.claude/skills/knowledge-management/scripts/claude-wrap.sh'
+alias claude='~/.claude/skills/claude-km-skill/scripts/claude-wrap.sh'
 
 # Usage - shows summary and asks to capture
 claude
@@ -495,6 +495,41 @@ export ANTHROPIC_API_KEY='your-key'
 **Output**: `docs/auto-captured/YYYY-MM/DD/HH.MM_session-*.md`
 
 See [AUTO-CAPTURE.md](AUTO-CAPTURE.md) for full documentation.
+
+## Security
+
+สคริปต์ทั้งหมดมีการป้องกันความปลอดภัย:
+
+### Path Validation
+
+ป้องกัน path traversal attacks - ทุกสคริปต์ตรวจสอบ path ก่อนใช้งาน:
+
+```bash
+# ❌ จะถูก reject
+./init.sh "../../../etc"
+./auto-capture.sh "../../sensitive"
+
+# ✅ ใช้งานได้
+./init.sh .
+./init.sh /path/to/project
+```
+
+### Input Sanitization
+
+`notify.sh` sanitize ทุก input ก่อนส่งให้ osascript:
+
+- Whitelist เฉพาะ alphanumeric, spaces, และ basic punctuation
+- Validate notification types (whitelist approach)
+- จำกัดความยาว input
+
+### Protected Scripts
+
+| Script | Protection |
+|--------|------------|
+| `init.sh` | Path validation, reject `..` |
+| `auto-capture.sh` | Path validation |
+| `ai-capture.sh` | Path validation |
+| `notify.sh` | Input sanitization, type whitelist |
 
 ## Contributing
 
