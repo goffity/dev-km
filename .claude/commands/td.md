@@ -4,7 +4,7 @@ description: Post-task review and retrospective with auto-capture and session me
 
 # Post-Task Review & Retrospective
 
-สร้าง retrospective พร้อม Before/After context, ทดสอบ, review code, และสร้าง PR
+สร้าง retrospective พร้อม Before/After context และบันทึก session
 
 ## Usage
 
@@ -18,6 +18,14 @@ description: Post-task review and retrospective with auto-capture and session me
 ## Output
 
 `$PROJECT_ROOT/docs/retrospective/YYYY-MM/retrospective_YYYY-MM-DD_hhmmss.md`
+
+## Flow
+
+```
+/td → Determine Status → Auto-capture → Gather Info → Comment Issue → Create Retrospective → Update Focus → Commit Docs → Confirm
+```
+
+**Note:** สำหรับ tests, build, code review และสร้าง PR ให้ใช้ `/pr` ก่อนรัน `/td`
 
 ## Instructions
 
@@ -48,55 +56,7 @@ cat docs/current.md
 - `/td pending` → STATE = pending
 - `/td blocked` → STATE = blocked
 
-### Step 2: Run Tests (CRITICAL)
-
-**ต้องรัน tests ก่อน push:**
-
-```bash
-echo "=== Running Tests ==="
-make test
-```
-
-- ถ้า tests fail → แจ้ง user และหยุด ให้แก้ไขก่อน
-- ถ้า tests pass → ดำเนินการต่อ
-
-### Step 3: Run Build (CRITICAL)
-
-**ต้อง build สำเร็จก่อน push:**
-
-```bash
-echo "=== Building ==="
-make build
-```
-
-- ถ้า build fail → แจ้ง user และหยุด ให้แก้ไขก่อน
-- ถ้า build pass → ดำเนินการต่อ
-
-### Step 4: Code Review (CRITICAL)
-
-**ใช้ Task tool สร้าง code-review subagent:**
-
-```
-ใช้ Task tool กับ subagent_type="general-purpose" เพื่อ review code:
-
-Prompt:
-"Review the code changes in this branch. Check for:
-1. Code quality and best practices
-2. Potential bugs or issues
-3. Security vulnerabilities
-4. Performance concerns
-5. Test coverage
-
-Provide a summary of findings with severity levels (critical/warning/info)."
-```
-
-**ถ้ามี critical issues:**
-- แจ้ง user และหยุด ให้แก้ไขก่อน
-
-**ถ้าไม่มี critical issues:**
-- ดำเนินการต่อ
-
-### Step 5: Auto-capture Git Context
+### Step 2: Auto-capture Git Context
 
 ```bash
 export TZ='Asia/Bangkok'
@@ -117,17 +77,17 @@ echo "=== Status ==="
 git status --short
 ```
 
-### Step 6: Gather Test Results from User
+### Step 3: Gather Session Info from User
 
 ใช้ AskUserQuestion เพื่อรวบรวมข้อมูล:
 
 1. **Tasks Done**: รายละเอียดงานที่ทำไป
-2. **Test Status**: ผ่าน/ไม่ผ่าน
+2. **Test Status**: ผ่าน/ไม่ผ่าน (หรือใช้ `/pr` แล้วหรือยัง)
 3. **Test Details**: รายละเอียดการทดสอบ
 4. **Errors**: ข้อผิดพลาด (ถ้ามี)
 5. **Additional Notes**: ข้อมูลเพิ่มเติม
 
-### Step 7: Add Comment to Issue
+### Step 4: Add Comment to Issue
 
 **อ่าน issue number จาก `docs/current.md`:**
 
@@ -142,7 +102,7 @@ echo "Issue: #$ISSUE"
 export TZ='Asia/Bangkok'
 
 gh issue comment $ISSUE --body "$(cat <<'EOF'
-## Work Completed
+## Session Summary
 
 ### Tasks Done
 
@@ -152,9 +112,6 @@ gh issue comment $ISSUE --body "$(cat <<'EOF'
 
 | Test | Status |
 |------|--------|
-| Unit Tests (`make test`) | ✅ Passed |
-| Build (`make build`) | ✅ Passed |
-| Code Review | ✅ Passed |
 | Acceptance Criteria | [user input] |
 
 ### Test Details
@@ -171,18 +128,18 @@ gh issue comment $ISSUE --body "$(cat <<'EOF'
 
 ---
 
-*Completed: $(date '+%Y-%m-%d %H:%M')*
+*Session: $(date '+%Y-%m-%d %H:%M')*
 EOF
 )"
 ```
 
-### Step 8: Create Retrospective File
+### Step 5: Create Retrospective File
 
 สร้างไฟล์ `docs/retrospective/YYYY-MM/retrospective_YYYY-MM-DD_hhmmss.md`
 
-(ใช้ template เดิม)
+(ใช้ template ด้านล่าง)
 
-### Step 9: Update Focus & Activity Log
+### Step 6: Update Focus & Activity Log
 
 **Update `docs/current.md`:**
 
@@ -205,9 +162,9 @@ export TZ='Asia/Bangkok'
 echo "$(date '+%Y-%m-%d %H:%M') | completed | [task]" >> docs/logs/activity.log
 ```
 
-### Step 10: Commit All Docs (CRITICAL)
+### Step 7: Commit All Docs
 
-**Commit ทุกไฟล์ใน docs/ ก่อน push:**
+**Commit ทุกไฟล์ใน docs/:**
 
 ```bash
 export TZ='Asia/Bangkok'
@@ -235,92 +192,9 @@ EOF
 git log -1 --oneline
 ```
 
-**หมายเหตุ:** ต้อง commit docs ก่อน push เสมอ เพื่อให้ retrospective และ session state ถูกบันทึกไว้ใน git
-
-### Step 11: Push Code
-
-**Push code ไปยัง remote:**
-
-```bash
-git push -u origin $(git branch --show-current)
-```
-
-### Step 12: Create Pull Request (CRITICAL)
-
-**สร้าง PR เชื่อมโยงกับ issue:**
-
-```bash
-export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
-BRANCH=$(git branch --show-current)
-
-gh pr create \
-  --title "[type]: [descriptive title]" \
-  --body "$(cat <<EOF
-## Summary
-
-[auto-generated summary from commits]
-
-## Changes Made
-
-$(git diff main...HEAD --name-only | sed 's/^/- /')
-
-## Testing
-
-| Test | Status |
-|------|--------|
-| Unit Tests | ✅ Passed |
-| Build | ✅ Passed |
-| Code Review | ✅ Passed |
-
-### Test Details
-
-[user input - รายละเอียดการทดสอบ]
-
-## Related Issues
-
-- #$ISSUE
-
-## Additional Notes
-
-[user input - ข้อมูลเพิ่มเติม]
-
-Fixes #$ISSUE
-EOF
-)"
-```
-
-### Step 13: Confirm & Remind
-
-```markdown
-## Session Complete ✓
-
-### Summary
-- Issue: #[issue-number] - Comment added
-- PR: #[pr-number] - Created and linked to issue
-- Retrospective: docs/retrospective/[path]
-
-### Test Results
-- Unit Tests: ✅ Passed
-- Build: ✅ Passed
-- Code Review: ✅ Passed
-
-### Important Reminders
-⚠️ **ห้ามทำ:**
-- ห้าม merge PR เอง - รอ reviewer approve
-- ห้ามปิด issue เอง - จะปิดอัตโนมัติเมื่อ PR ถูก merge
-
-### Next Steps
-1. รอ reviewer approve PR
-2. แก้ไขตาม feedback (ถ้ามี)
-3. ใช้ `/focus` เพื่อเริ่มงานใหม่
-```
-
-### Step 14: Check Documentation Updates
+### Step 8: Check Documentation Updates
 
 **ตรวจสอบว่าต้อง update เอกสารหรือไม่:**
-
-หลังจากทำ retrospective ให้ตรวจสอบว่าการเปลี่ยนแปลงที่ทำไปต้อง update เอกสารเหล่านี้หรือไม่:
 
 | File | Check When |
 |------|------------|
@@ -332,10 +206,6 @@ EOF
 
 **ถ้าพบว่าต้อง update:**
 
-1. ระบุไฟล์ที่ต้อง update
-2. อธิบายสิ่งที่ต้องเปลี่ยน
-3. ถามผู้ใช้ว่าต้องการให้ update เลยหรือไม่
-
 ```markdown
 📝 **Documentation Check**
 
@@ -344,26 +214,25 @@ EOF
 | File | Reason |
 |------|--------|
 | `README.md` | [reason] |
-| `SETUP.md` | [reason] |
 
 ต้องการให้ update เอกสารเลยไหม?
 ```
 
-## Pre-Push Checklist
+### Step 9: Confirm & Remind
 
-| Check | Command | Required |
-|-------|---------|----------|
-| Tests | `make test` | ✅ Must pass |
-| Build | `make build` | ✅ Must pass |
-| Code Review | subagent | ✅ No critical issues |
+```markdown
+## Session Complete ✓
 
-## Forbidden Actions
+### Summary
+- Issue: #[issue-number] - Comment added
+- Retrospective: docs/retrospective/[path]
 
-| Action | Reason |
-|--------|--------|
-| ❌ Merge PR | ต้องรอ reviewer approve |
-| ❌ Close Issue | จะปิดอัตโนมัติเมื่อ PR merge |
-| ❌ Force Push | อันตราย ห้ามใช้ |
+### Next Steps
+1. ใช้ `/pr` เพื่อรัน tests, build, review และสร้าง PR
+2. รอ reviewer approve PR
+3. แก้ไขตาม feedback (ถ้ามี)
+4. ใช้ `/focus` เพื่อเริ่มงานใหม่
+```
 
 ## Template (Retrospective)
 
@@ -375,7 +244,6 @@ status: completed|pending|blocked
 tags: [tag1, tag2]
 branch: branch-name
 issue: "#123"
-pr: "#456"
 duration: ~2h
 files_changed:
   - path/to/file.go
@@ -394,7 +262,6 @@ files_changed:
 | Status | completed/pending/blocked |
 | Branch | branch |
 | Issue | #123 |
-| PR | #456 |
 
 ---
 
@@ -420,9 +287,6 @@ files_changed:
 
 | Test | Status | Details |
 |------|--------|---------|
-| Unit Tests | ✅/❌ | |
-| Build | ✅/❌ | |
-| Code Review | ✅/❌ | |
 | Acceptance Criteria | ✅/❌ | |
 
 ---
@@ -480,21 +344,36 @@ files_changed:
 
 ## Validation Checklist
 
-- [ ] Tests pass (`make test`)
-- [ ] Build succeeds (`make build`)
-- [ ] Code review passed
 - [ ] Acceptance criteria met
-- [ ] PR created and linked to issue
-- [ ] Comment added to issue
 - [ ] Documentation updated (if needed)
+- [ ] Used `/pr` for tests, build, review and PR creation
+```
+
+## Workflow Integration
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Development Flow                       │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│   /focus  ──→  Work  ──→  /commit  ──→  /pr  ──→  /td   │
+│      │                        │          │         │     │
+│      │                        │          │         │     │
+│   Create                   Atomic     Tests/     Session │
+│   Issue                    Commits    Build/     Summary │
+│                                       Review/            │
+│                                       PR                 │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## Related Commands
 
 | Command | Purpose |
 |---------|---------|
-| `/focus` | ตั้ง focus ใหม่ |
-| `/recap` | ดู context |
-| `/td` | จบ session (คุณอยู่ที่นี่) |
-| `/mem` | บันทึก knowledge |
+| `/focus` | ตั้ง focus และสร้าง issue |
 | `/commit` | Atomic commits |
+| `/pr` | รัน tests, build, review และสร้าง PR |
+| `/td` | สร้าง retrospective (คุณอยู่ที่นี่) |
+| `/recap` | ดู context |
+| `/mem` | บันทึก knowledge |
