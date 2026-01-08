@@ -95,37 +95,67 @@ gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | {id, body, u
 
 ### Step 6: Handle Each Comment
 
-สำหรับแต่ละ comment:
+**IMPORTANT: Reply แยกแต่ละ comment โดยตรง**
+- ห้ามรวม reply หลาย comments ไว้ใน comment เดียว
+- ห้ามสร้าง comment ใหม่แยกต่างหาก
+- ต้อง reply ไปที่ comment นั้นๆ โดยตรงเท่านั้น
 
-**ถ้าต้องแก้ไข:**
-1. อ่านไฟล์ที่เกี่ยวข้อง
-2. วิเคราะห์และแก้ไขตาม feedback
-3. Reply comment ด้วย:
-   ```bash
-   gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
-     -f body="Fixed! Changes made:
-   - [description of fix]
+สำหรับ **แต่ละ comment** ให้ทำแยกกัน:
 
-   [code snippet if relevant]"
-   ```
+#### 6.1 Comment ที่ต้องแก้ไข
 
-**ถ้าไม่ต้องแก้ไข (disagreement หรือ clarification):**
-1. Reply comment ด้วยเหตุผล:
-   ```bash
-   gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
-     -f body="Thanks for the feedback!
+```bash
+# Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+  -f body="Fixed!
 
-   [explanation why not changing]
+- [description of what was changed]
+- [code snippet if relevant]"
+```
 
-   [alternative approach if applicable]"
-   ```
+#### 6.2 Comment ที่ไม่ต้องแก้ไข
 
-**ถ้าเป็นคำถาม:**
-1. Reply ด้วยคำตอบ:
-   ```bash
-   gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
-     -f body="[answer to question]"
-   ```
+```bash
+# Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+  -f body="Thanks for the suggestion!
+
+[explanation why not changing]
+
+[alternative approach if applicable]"
+```
+
+#### 6.3 Comment ที่เป็นคำถาม
+
+```bash
+# Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+  -f body="[answer to question]"
+```
+
+#### 6.4 Comment ที่เป็นคำชม
+
+```bash
+# Reply ไปที่ comment_id นั้นโดยตรง
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+  -f body="Thank you! [brief acknowledgment]"
+```
+
+**Example - Multiple Comments:**
+
+```bash
+# Comment 1: ต้องแก้ไข (comment_id: 123)
+gh api repos/owner/repo/pulls/42/comments/123/replies \
+  -f body="Fixed! Changed context.Background() to context.WithTimeout(ctx, 30*time.Second)"
+
+# Comment 2: ไม่แก้ไข (comment_id: 124)
+gh api repos/owner/repo/pulls/42/comments/124/replies \
+  -f body="Good point! However, I kept this approach because..."
+
+# Comment 3: คำถาม (comment_id: 125)
+gh api repos/owner/repo/pulls/42/comments/125/replies \
+  -f body="Yes, this handles the edge case by..."
+```
 
 ### Step 7: Update Related Issues
 
