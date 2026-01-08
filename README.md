@@ -50,14 +50,16 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 |---------|---------|-------|
 | `/recap` | เริ่ม session - โหลด context เดิม | `/recap` |
 | `/focus [task]` | ตั้ง focus + สร้าง GitHub issue | `/focus Implement feature X` |
-| `/td [status]` | จบ session: test + review + PR | `/td done` |
+| `/td [status]` | จบ session: สร้าง retrospective | `/td done` |
 
 ### Git & Code
 
 | Command | Purpose | Usage |
 |---------|---------|-------|
 | `/commit` | Atomic commits (via TDG) | `/commit` |
+| `/pr` | Test + Build + Review + Create PR | `/pr` |
 | `/review` | Manual code review | `/review` |
+| `/pr-review` | ตอบ PR feedback | `/pr-review` |
 | `/permission` | จัดการ permissions - pre-allow safe commands | `/permission suggest` |
 
 ### Knowledge Capture (4-Layer)
@@ -98,10 +100,17 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
                                │
                                ▼
                     ┌─────────────────────┐
-                    │        /td          │
-                    │  test + review      │
-                    │  comment issue      │
+                    │        /pr          │
+                    │  test + build       │
+                    │  code review        │
                     │  create PR          │
+                    └─────────────────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │        /td          │
+                    │  retrospective      │
+                    │  comment issue      │
                     └─────────────────────┘
                                │
                                ▼
@@ -123,8 +132,11 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 /mem "JWT refresh pattern"      # บันทึก insight ระหว่างทาง
 /commit                         # commit เมื่อเสร็จ chunk
 
-# 4. จบ session
-/td done                        # test + review + comment issue + สร้าง PR
+# 4. สร้าง PR
+/pr                             # test + build + review + สร้าง PR
+
+# 5. จบ session
+/td done                        # สร้าง retrospective + comment issue
 ```
 
 ## Knowledge Layer Workflow
@@ -340,13 +352,15 @@ Brief summary of the changes made.
 Fixes #issue_number
 ```
 
-### Pre-Push Checklist
+### Pre-Push Checklist (via /pr)
 
 | Check | Command | Required |
 |-------|---------|----------|
 | Tests | `make test` | Must pass |
 | Build | `make build` | Must pass |
-| Code Review | `/review` | No critical issues |
+| Code Review | Subagent | No critical issues |
+
+**Note:** `/pr` จะรันทุกขั้นตอนนี้ให้อัตโนมัติพร้อม update issue ทุก step
 
 ### Forbidden Actions
 

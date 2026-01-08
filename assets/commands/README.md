@@ -9,7 +9,8 @@
 /focus Implement feature X      # ตั้ง focus + สร้าง issue (ถามรายละเอียด)
 # ... ทำงาน ...
 /commit                         # commit แบบ atomic
-/td done                        # test + review + comment + PR
+/pr                             # test + build + review + สร้าง PR
+/td done                        # สร้าง retrospective + comment issue
 ```
 
 ---
@@ -31,11 +32,6 @@
                     ┌─────────────────────┐
                     │      /focus         │
                     │  ตั้งงาน + สร้าง issue │
-                    │  (ถาม Overview,     │
-                    │   Current State,    │
-                    │   Proposed Solution,│
-                    │   Technical Details,│
-                    │   Acceptance Criteria)│
                     └─────────────────────┘
                                │
                                ▼
@@ -48,13 +44,22 @@
                                │
                                ▼
                     ┌─────────────────────┐
-                    │        /td          │
+                    │        /pr          │
                     │  1. make test       │
                     │  2. make build      │
                     │  3. code review     │
-                    │  4. ถาม test results │
-                    │  5. comment issue   │
-                    │  6. create PR       │
+                    │     (subagent)      │
+                    │  4. create PR       │
+                    │  (update issue ทุกstep)│
+                    └─────────────────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │        /td          │
+                    │  1. ถาม status      │
+                    │  2. gather info     │
+                    │  3. comment issue   │
+                    │  4. retrospective   │
                     └─────────────────────┘
                                │
                                ▼
@@ -92,17 +97,18 @@
 | Command | Description | Usage |
 |---------|-------------|-------|
 | `/recap` | โหลด context เริ่ม session | `/recap` |
-| `/focus` | ตั้ง focus + สร้าง issue (ถามรายละเอียด) | `/focus [task description]` |
-| `/td` | test + review + comment + PR | `/td [done\|pending\|blocked]` |
+| `/focus` | ตั้ง focus + สร้าง issue | `/focus [task description]` |
+| `/td` | สร้าง retrospective + comment issue | `/td [done\|pending\|blocked]` |
 
 ### Git & Code
 
 | Command | Description | Usage |
 |---------|-------------|-------|
 | `/commit` | Atomic commit (via tdg:atomic) | `/commit` |
+| `/pr` | Test + Build + Review + Create PR | `/pr` |
 | `/review` | Manual code review | `/review` |
 | `/pr-review` | Handle PR review feedback | `/pr-review [pr-number]` |
-| `/permission` | จัดการ permissions - pre-allow safe commands | `/permission suggest` |
+| `/permission` | จัดการ permissions | `/permission suggest` |
 
 ### Knowledge Capture
 
@@ -111,6 +117,64 @@
 | `/mem` | Quick knowledge capture | `/mem [title]` |
 | `/distill` | Extract patterns จาก learnings | `/distill [topic]` |
 | `/improve` | Work on pending improvements | `/improve` |
+
+---
+
+## /pr Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                            /pr                                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────┐                                                   │
+│  │make test │──fail──→ Comment Issue → Stop                     │
+│  └────┬─────┘          (user fixes & reruns /pr)                │
+│       │pass                                                      │
+│       ▼                                                          │
+│  ┌──────────┐                                                   │
+│  │make build│──fail──→ Comment Issue → Stop                     │
+│  └────┬─────┘          (user fixes & reruns /pr)                │
+│       │pass                                                      │
+│       ▼                                                          │
+│  ┌───────────────┐                                              │
+│  │ Code Review   │──fail──→ Comment Issue                       │
+│  │  (subagent)   │              │                               │
+│  └───────┬───────┘              ▼                               │
+│          │              ┌───────────────┐                       │
+│          │              │ Agent Auto-fix│                       │
+│          │              └───────┬───────┘                       │
+│          │                      │                               │
+│          │              Comment Issue                           │
+│          │                      │                               │
+│          │              ◄───────┘ (re-review)                   │
+│          │pass                                                  │
+│          ▼                                                      │
+│  ┌──────────┐                                                   │
+│  │ git push │                                                   │
+│  └────┬─────┘                                                   │
+│       ▼                                                          │
+│  ┌──────────┐                                                   │
+│  │Create PR │──→ Comment Issue                                  │
+│  └──────────┘                                                   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Issue Comments Timeline
+
+| Step | Comment |
+|------|---------|
+| Test Start | 🧪 Running Tests |
+| Test Pass | 🧪 Tests Passed ✅ |
+| Test Fail | 🧪 Tests Failed ❌ |
+| Build Pass | 🏗️ Build Passed ✅ |
+| Build Fail | 🏗️ Build Failed ❌ |
+| Review Start | 🔍 Code Review Started |
+| Review Pass | 🔍 Code Review Passed ✅ |
+| Review Fail | 🔍 Code Review Failed ❌ |
+| Auto-fix | 🔧 Auto-fix Applied |
+| PR Created | 🎉 Pull Request Created |
 
 ---
 
@@ -145,7 +209,7 @@ What should be implemented.
 เมื่อใช้ `/td` จะเพิ่ม comment ใน issue:
 
 ```markdown
-## Work Completed
+## Session Summary
 
 ### Tasks Done
 รายละเอียดงานที่ทำไป
@@ -153,9 +217,7 @@ What should be implemented.
 ### Test Results
 | Test | Status |
 |------|--------|
-| Unit Tests | ✅ Passed |
-| Build | ✅ Passed |
-| Code Review | ✅ Passed |
+| Acceptance Criteria | ✅/❌ |
 
 ### Errors (if any)
 ข้อผิดพลาด
@@ -168,7 +230,7 @@ What should be implemented.
 
 ## PR Format
 
-เมื่อใช้ `/td` จะสร้าง PR ด้วย format:
+เมื่อใช้ `/pr` จะสร้าง PR ด้วย format:
 
 ```markdown
 ## Summary
@@ -178,26 +240,27 @@ Brief summary of the changes made.
 - List of key changes.
 
 ## Testing
-- Description of tests performed.
+| Test | Status |
+|------|--------|
+| Unit Tests | ✅ Passed |
+| Build | ✅ Passed |
+| Code Review | ✅ Passed |
 
 ## Related Issues
-- #issue_number
-
-## Additional Notes
-Any other relevant information.
-
 Fixes #issue_number
 ```
 
 ---
 
-## Pre-Push Checklist
+## Pre-Push Checklist (via /pr)
 
 | Check | Command | Required |
 |-------|---------|----------|
 | Tests | `make test` | ✅ Must pass |
 | Build | `make build` | ✅ Must pass |
-| Code Review | `/review` or auto | ✅ No critical issues |
+| Code Review | Subagent | ✅ No critical issues |
+
+**Note:** `/pr` จะรันทุกขั้นตอนนี้ให้อัตโนมัติพร้อม update issue ทุก step
 
 ---
 
@@ -259,7 +322,7 @@ ready ─────────────▶ working ──/td done──▶
 | State | Meaning | Next Action |
 |-------|---------|-------------|
 | `ready` | ว่าง รอ task | `/focus` เพื่อตั้งงาน |
-| `working` | กำลังทำ | `/td` เมื่อจบ |
+| `working` | กำลังทำ | `/pr` แล้ว `/td` เมื่อจบ |
 | `pending` | รอทำต่อ | `/recap` แล้ว `/focus` |
 | `blocked` | ติดปัญหา | แก้ปัญหาก่อน |
 | `completed` | เสร็จแล้ว | `/focus` งานใหม่ |
@@ -298,11 +361,6 @@ docs/
 
 # 2. ตั้ง focus + สร้าง issue
 /focus Implement user login API     # จะถามรายละเอียดเพิ่มเติม
-                                    # - Overview
-                                    # - Current State
-                                    # - Proposed Solution
-                                    # - Technical Details
-                                    # - Acceptance Criteria
 
 # 3. ทำงาน...
 # - เขียน code
@@ -310,25 +368,30 @@ docs/
 # - /mem "JWT token refresh pattern"  # บันทึก insight ระหว่างทาง
 # - /commit                            # commit เมื่อเสร็จ chunk
 
-# 4. จบ session
-/td done                              # จะทำ:
-                                      # - make test
-                                      # - make build
-                                      # - code review
-                                      # - ถาม test results
-                                      # - comment issue
-                                      # - สร้าง PR
+# 4. สร้าง PR
+/pr                                 # จะทำ:
+                                    # - make test
+                                    # - make build
+                                    # - code review (subagent)
+                                    # - create PR
+                                    # (update issue ทุก step)
 
-# 5. (Weekly) Review และ distill
-/distill error-handling               # รวม learnings เป็น knowledge
-/improve                              # ทำ pending improvements
+# 5. จบ session
+/td done                            # จะทำ:
+                                    # - ถาม session info
+                                    # - comment issue
+                                    # - สร้าง retrospective
+
+# 6. (Weekly) Review และ distill
+/distill error-handling             # รวม learnings เป็น knowledge
+/improve                            # ทำ pending improvements
 ```
 
 ---
 
 ## Permission Management
 
-ใช้ `/permission` เพื่อ pre-allow safe commands แทน `--dangerously-skip-permissions` (ตามแนวทาง Boris Cherny)
+ใช้ `/permission` เพื่อ pre-allow safe commands
 
 ### Usage
 
@@ -353,37 +416,6 @@ docs/
 | `gh` | GitHub CLI |
 | `common` | ls, cat, grep, find, jq |
 
-### Example: Node.js Project
-
-```bash
-/permission suggest
-# เลือก: node,git,gh,common
-```
-
-จะสร้าง `.claude/settings.local.json`:
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "Bash(npm run test:*)",
-      "Bash(npm run build:*)",
-      "Bash(bun test:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push)",
-      "Bash(gh pr:*)",
-      "Bash(gh issue:*)"
-    ]
-  }
-}
-```
-
-### Best Practice
-
-- ใช้ `settings.local.json` สำหรับ project → share กับ team ได้
-- ใช้ `~/.claude/settings.json` สำหรับ global deny → ป้องกัน force commands
-
 ---
 
 ## Tips
@@ -396,13 +428,15 @@ docs/
 
 4. **`/commit` แทน `git commit`** - ได้ atomic commits ที่ clean
 
-5. **`/td` ทุกครั้งที่จบ session** - จะ test, review, comment และสร้าง PR
+5. **`/pr` ก่อนจบ session** - จะ test, build, review และสร้าง PR พร้อม update issue
 
-6. **`/distill` เมื่อมี 3+ learnings** - รวมเป็น reusable knowledge
+6. **`/td` ทุกครั้งที่จบ session** - สร้าง retrospective และ comment issue
 
-7. **ห้าม merge PR หรือปิด issue เอง** - รอ reviewer approve
+7. **`/distill` เมื่อมี 3+ learnings** - รวมเป็น reusable knowledge
 
-8. **`/pr-review` เมื่อได้รับ review** - จัดการ feedback และเรียนรู้จากมัน
+8. **ห้าม merge PR หรือปิด issue เอง** - รอ reviewer approve
+
+9. **`/pr-review` เมื่อได้รับ review** - จัดการ feedback และเรียนรู้จากมัน
 
 ---
 
