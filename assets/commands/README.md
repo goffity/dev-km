@@ -63,6 +63,24 @@
 │  ⚠️ ห้าม merge PR เอง - รอ reviewer approve                      │
 │  ⚠️ ห้ามปิด issue เอง - จะปิดอัตโนมัติเมื่อ PR merge             │
 └─────────────────────────────────────────────────────────────────┘
+                               │
+                               │ (เมื่อได้รับ review)
+                               ▼
+                    ┌─────────────────────┐
+                    │     /pr-review      │
+                    │  1. ดู PR + reviews │
+                    │  2. วิเคราะห์ feedback │
+                    │  3. แก้ไข + reply   │
+                    │  4. update issue    │
+                    │  5. สร้าง learning  │
+                    │  6. push changes    │
+                    └─────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    WAIT FOR RE-REVIEW                            │
+│  รอ reviewer approve แล้ว merge PR                               │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -83,6 +101,7 @@
 |---------|-------------|-------|
 | `/commit` | Atomic commit (via tdg:atomic) | `/commit` |
 | `/review` | Manual code review | `/review` |
+| `/pr-review` | Handle PR review feedback | `/pr-review [pr-number]` |
 | `/permission` | จัดการ permissions - pre-allow safe commands | `/permission suggest` |
 
 ### Knowledge Capture
@@ -382,6 +401,36 @@ docs/
 6. **`/distill` เมื่อมี 3+ learnings** - รวมเป็น reusable knowledge
 
 7. **ห้าม merge PR หรือปิด issue เอง** - รอ reviewer approve
+
+8. **`/pr-review` เมื่อได้รับ review** - จัดการ feedback และเรียนรู้จากมัน
+
+---
+
+## PR Review Workflow
+
+เมื่อ PR ได้รับ review จาก reviewer:
+
+```bash
+# 1. ตรวจสอบ PR ที่ได้รับ review
+/pr-review                      # ดู PR ของ current branch
+/pr-review 42                   # ดู PR #42 เฉพาะเจาะจง
+```
+
+### What /pr-review Does
+
+1. **ดู PR ที่ open** - หา PR ที่ได้รับ review แล้ว
+2. **วิเคราะห์ feedback** - แยกประเภท comment (ต้องแก้/พิจารณา/รับทราบ)
+3. **แก้ไขตาม feedback** - อ่าน code และแก้ไขตามที่ reviewer แนะนำ
+4. **Reply comments** - ตอบกลับแต่ละ comment ว่าทำอะไรไปบ้าง
+5. **Update issue** - เพิ่ม progress comment ใน related issues
+6. **สร้าง learning doc** - บันทึกสิ่งที่เรียนรู้จาก review
+7. **Commit และ push** - push changes เพื่อ update PR
+
+### Example Flow
+
+```
+PR Created → Reviewer comments → /pr-review → Fix + Reply → Re-review → Approved → Merge
+```
 
 ---
 

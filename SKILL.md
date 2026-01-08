@@ -16,6 +16,7 @@ description: 4-layer knowledge capture system for development sessions. Use when
 | `/td` | 3 | `docs/retrospective/YYYY-MM/retrospective_*.md` | Task completed |
 | `/improve` | 4 | Implementation | Work on pending items |
 | `/commit` | - | Git commits | Atomic commits via TDG |
+| `/pr-review` | - | Learning doc + PR updates | Handle PR review feedback |
 
 ## Flow
 
