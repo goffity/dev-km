@@ -5,3 +5,4 @@
 2026-01-09 18:39 | completed | Fix HEREDOC in /focus skill (#3)
 2026-01-09 18:48 | working | /pr-review ควรสร้าง issue เมื่อ defer (#4)
 2026-01-09 19:35 | completed | /pr-review defer handling (#4) - PR #6 merged
+2026-01-09 19:49 | working | /pr-review ควรใส่ commit hash (#5)
