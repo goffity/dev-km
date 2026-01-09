@@ -120,13 +120,64 @@ gh issue create \
 ## Session Info
 
 - **Started:** $(date '+%Y-%m-%d %H:%M')
-- **Branch:** $(git branch --show-current)
+- **Branch:** [type]/[issue-number]-[short-slug]
 - **Status:** 🔄 In Progress
 EOF
 )"
 ```
 
 เก็บ issue number ที่ได้ (เช่น `#123`) ไว้ใช้ใน Step 6
+
+### Step 5.5: Create Feature Branch (Required)
+
+**ข้อบังคับ:** ถ้าอยู่บน `main`, `master`, หรือ default branch ต้องสร้าง branch ใหม่เสมอ
+
+```bash
+export TZ='Asia/Bangkok'
+
+CURRENT_BRANCH=$(git branch --show-current)
+DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+
+# ถ้าไม่มี default branch ให้ใช้ main หรือ master
+if [ -z "$DEFAULT_BRANCH" ]; then
+  if git show-ref --verify --quiet refs/heads/main; then
+    DEFAULT_BRANCH="main"
+  else
+    DEFAULT_BRANCH="master"
+  fi
+fi
+
+# ตรวจสอบว่าอยู่บน main/master/default branch หรือไม่
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ] || [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
+  echo "⚠️  Currently on $CURRENT_BRANCH - creating feature branch..."
+
+  # สร้าง branch name จาก type และ issue number
+  # Format: [type]/[issue-number]-[short-description]
+  # Example: feat/123-add-user-auth, fix/45-login-timeout
+
+  git checkout -b "[type]/[issue-number]-[short-slug]"
+  echo "✓ Created and switched to branch: [type]/[issue-number]-[short-slug]"
+else
+  echo "✓ Already on feature branch: $CURRENT_BRANCH"
+fi
+```
+
+**Branch Naming Convention:**
+
+| Type | Branch Prefix | Example |
+|------|---------------|---------|
+| feat | `feat/` | `feat/123-add-user-auth` |
+| fix | `fix/` | `fix/45-login-timeout` |
+| refactor | `refactor/` | `refactor/67-simplify-auth` |
+| docs | `docs/` | `docs/89-update-readme` |
+| test | `test/` | `test/12-add-unit-tests` |
+| chore | `chore/` | `chore/34-update-deps` |
+
+**Short slug rules:**
+- ใช้ lowercase
+- แทนที่ space ด้วย `-`
+- ตัดคำที่ไม่จำเป็นออก (a, an, the)
+- จำกัดความยาวไม่เกิน 30 ตัวอักษร
 
 ### Step 6: Update Files
 
@@ -139,6 +190,7 @@ STATE: working
 TASK: [task description from user]
 SINCE: $(date '+%Y-%m-%d %H:%M')
 ISSUE: #[issue-number]
+BRANCH: [type]/[issue-number]-[short-slug]
 EOF
 ```
 
@@ -156,12 +208,11 @@ echo "$(date '+%Y-%m-%d %H:%M') | working | [task description] (#[issue-number])
 
 **Issue Created:** #[issue-number]
 **Title:** [type]: [title]
+**Branch:** [type]/[issue-number]-[short-slug]
 
 STATE: working
 TASK: [task]
 SINCE: [timestamp]
-
-Branch: [current branch]
 
 ### Acceptance Criteria
 - [ ] [criteria 1]
