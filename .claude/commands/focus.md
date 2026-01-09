@@ -413,5 +413,5 @@ Assigned to: you
 |---------|-------------|
 | `/jira init` | ตั้งค่า Jira credentials |
 | `/jira list` | ดู Jira issues |
-| `/jira start` | เริ่มทำ Jira issue (alternative to /focus) |
+| `/jira transitions` | ดู transitions ที่ทำได้ |
 | `/td` | จบ session + retrospective |

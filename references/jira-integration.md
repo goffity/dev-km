@@ -236,14 +236,16 @@ ID    NAME
 31    Done
 ```
 
-#### `/jira status`
-เปลี่ยน status ของ issue
+#### `/jira transition`
+เปลี่ยน status ของ issue ผ่าน workflow transition
 
 ```bash
-/jira status PROJ-123 "In Progress"
-# หรือใช้ transition ID
-/jira status PROJ-123 21
+# ต้องใช้ transition ID (ตัวเลข) จาก /jira transitions
+/jira transition PROJ-123 21  # 21 = In Progress (example)
+/jira transition PROJ-123 31  # 31 = Done (example)
 ```
+
+> **Note:** Jira ใช้ workflow transitions ไม่ใช่การเปลี่ยน status โดยตรง
 
 ---
 
@@ -298,10 +300,7 @@ Assign issue
 # 1. ดู issues ที่ assign ให้
 /jira my "To Do"
 
-# 2. เริ่มทำงาน
-/jira start PROJ-123
-
-# หรือใช้ /focus แล้วเลือก "Jira (existing)"
+# 2. เริ่มทำงานผ่าน /focus
 /focus
 # เลือก "Jira (existing)"
 # ใส่ PROJ-123
@@ -311,14 +310,17 @@ Assign issue
 # - Issue status: In Progress
 ```
 
+> **Note:** ไม่มีคำสั่ง `/jira start` โดยตรง ให้ใช้ `/focus` แล้วเลือก "Jira (existing)" แทน
+
 ### Workflow 3: จบงานและ Update Status
 
 ```bash
 # 1. ทำงานเสร็จ ใช้ /td
 /td
 
-# 2. Update Jira status (ถ้าต้องการ)
-/jira status PROJ-123 "Done"
+# 2. Update Jira status (ใช้ transition ID)
+/jira transitions PROJ-123  # ดู transition IDs ที่ทำได้
+/jira transition PROJ-123 31  # 31 = Done (example ID)
 
 # หรือเพิ่ม comment
 /jira comment PROJ-123 "Completed. PR #45 merged."
@@ -459,8 +461,9 @@ sudo yum install jq
 
 # Work with Issues
 /jira create            # Create new issue
-/jira start <key>       # Start working (via /focus)
-/jira status <key> <status>  # Change status
+/focus                  # Start work (select "Jira existing")
+/jira transitions <key> # List available transitions
+/jira transition <key> <id>  # Change status
 /jira comment <key> <text>   # Add comment
 /jira assign <key> me   # Assign to self
 

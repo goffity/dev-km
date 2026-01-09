@@ -22,8 +22,8 @@ description: Jira integration - create, list, fetch, and manage Jira issues
 | `/jira my` | แสดง issues ที่ assign ให้ฉัน |
 | `/jira get <key>` | ดู issue details |
 | `/jira create` | สร้าง issue ใหม่ |
-| `/jira start <key>` | เริ่มทำงาน issue (ดึงมาทำ) |
-| `/jira status <key> <status>` | เปลี่ยน status |
+| `/jira transitions <key>` | ดู transitions ที่ทำได้ |
+| `/jira transition <key> <id>` | เปลี่ยน status ด้วย transition ID |
 | `/jira comment <key>` | เพิ่ม comment |
 
 ## Instructions
@@ -146,10 +146,13 @@ URL: https://company.atlassian.net/browse/PROJ-123
 Summary: [summary]
 Type: [type]
 
-ใช้ /jira start PROJ-123 เพื่อเริ่มทำงาน
+ใช้ /focus แล้วเลือก "Jira (existing)" เพื่อเริ่มทำงาน
 ```
 
-### Command: start
+### Workflow: Start Working on Issue
+
+> **Note:** ไม่มีคำสั่ง `/jira start` โดยตรง ให้ใช้ `/focus` แล้วเลือก "Jira (existing)" แทน
+> หรือทำ workflow ด้านล่างนี้ด้วยตัวเอง
 
 เริ่มทำงาน Jira issue - ดึงมาเป็น current focus
 
@@ -221,9 +224,9 @@ Assigned to: you
 Ready to work!
 ```
 
-### Command: status
+### Command: transition
 
-เปลี่ยน status ของ issue
+เปลี่ยน status ของ issue ผ่าน Jira workflow transitions
 
 **Step 1: แสดง available transitions**
 
@@ -240,6 +243,8 @@ Ready to work!
 ```bash
 ./scripts/jira-client.sh transition [ISSUE_KEY] [transition_id]
 ```
+
+> **Note:** Jira ใช้ workflow transitions แทนการเปลี่ยน status โดยตรง ต้องใช้ transition ID (ตัวเลข) ไม่ใช่ชื่อ status
 
 ### Command: comment
 
@@ -305,12 +310,15 @@ JIRA_PROJECT="PROJ"  # default project
 /jira my
 /jira get PROJ-123
 
-# Create and start work
+# Create issue
 /jira create
-/jira start PROJ-123
 
-# Update status
-/jira status PROJ-123 Done
+# Start work (use /focus with Jira path)
+/focus  # then select "Jira (existing)" and enter PROJ-123
+
+# Change status (use transition ID from /jira transitions)
+/jira transitions PROJ-123  # see available transitions
+/jira transition PROJ-123 31  # 31 = Done (example ID)
 /jira comment PROJ-123 "Fixed the issue"
 ```
 

@@ -265,8 +265,9 @@ cmd_create() {
 
     if echo "$result" | jq -e '.key' > /dev/null 2>&1; then
         local key=$(echo "$result" | jq -r '.key')
-        echo "Created: $key"
-        echo "URL: https://${JIRA_DOMAIN}/browse/$key"
+        # Info messages to stderr, key to stdout for programmatic use
+        echo "Created: $key" >&2
+        echo "URL: https://${JIRA_DOMAIN}/browse/$key" >&2
         echo "$key"
     else
         echo "Failed to create issue:" >&2
@@ -391,6 +392,7 @@ cmd_transition() {
     local payload=$(jq -n --arg id "$transition_id" '{transition: {id: $id}}')
     local result=$(jira_api POST "/issue/$issue_key/transitions" "$payload")
 
+    # Jira API returns 204 No Content on success (empty response)
     if [[ -z "$result" ]]; then
         echo "Transitioned $issue_key successfully"
         # Show new status
@@ -471,6 +473,7 @@ cmd_assign() {
 
     local result=$(jira_api PUT "/issue/$issue_key/assignee" "$payload")
 
+    # Jira API returns 204 No Content on success (empty response)
     if [[ -z "$result" ]]; then
         if [[ "$account_id" == "-1" ]] || [[ -z "$account_id" ]]; then
             echo "Unassigned $issue_key"
@@ -524,7 +527,12 @@ cmd_status() {
     echo "Current settings:"
     echo "  Domain: ${JIRA_DOMAIN:-<not set>}"
     echo "  Email: ${JIRA_EMAIL:-<not set>}"
-    echo "  Token: ${JIRA_API_TOKEN:+<set>}${JIRA_API_TOKEN:-<not set>}"
+    # Never expose token value - only show if set or not
+    if [[ -n "$JIRA_API_TOKEN" ]]; then
+        echo "  Token: <set>"
+    else
+        echo "  Token: <not set>"
+    fi
     echo "  Project: ${JIRA_PROJECT:-<not set>}"
 }
 
@@ -585,25 +593,30 @@ EOF
 # Main command dispatcher
 main() {
     local command="${1:-}"
-    shift 2>/dev/null || true
+
+    # Show help when no command or explicit help flag
+    if [[ -z "$command" || "$command" == "help" || "$command" == "--help" || "$command" == "-h" ]]; then
+        show_help
+        return 0
+    fi
+
+    # Shift past command name (safe here because we know $1 exists)
+    shift
 
     case "$command" in
-        init)       cmd_init "$@" ;;
-        test)       cmd_test "$@" ;;
-        status)     cmd_status "$@" ;;
-        projects)   cmd_projects "$@" ;;
-        create)     cmd_create "$@" ;;
-        get)        cmd_get "$@" ;;
-        list)       cmd_list "$@" ;;
-        search)     cmd_search "$@" ;;
-        my-issues)  cmd_my_issues "$@" ;;
+        init)        cmd_init "$@" ;;
+        test)        cmd_test "$@" ;;
+        status)      cmd_status "$@" ;;
+        projects)    cmd_projects "$@" ;;
+        create)      cmd_create "$@" ;;
+        get)         cmd_get "$@" ;;
+        list)        cmd_list "$@" ;;
+        search)      cmd_search "$@" ;;
+        my-issues)   cmd_my_issues "$@" ;;
         transitions) cmd_transitions "$@" ;;
-        transition) cmd_transition "$@" ;;
-        comment)    cmd_comment "$@" ;;
-        assign)     cmd_assign "$@" ;;
-        help|--help|-h|"")
-            show_help
-            ;;
+        transition)  cmd_transition "$@" ;;
+        comment)     cmd_comment "$@" ;;
+        assign)      cmd_assign "$@" ;;
         *)
             echo "Unknown command: $command" >&2
             echo "Run 'jira-client.sh help' for usage" >&2
