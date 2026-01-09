@@ -86,6 +86,9 @@ gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | {id, body, u
 ### Suggestions (พิจารณา)
 - [ ] [file:line] [description] - by @[reviewer]
 
+### Deferred (สร้าง issue แล้วทำทีหลัง)
+- [ ] [file:line] [description] - by @[reviewer] → #[issue-number]
+
 ### Praise/Acknowledgments (รับทราบ)
 - [x] [description] - by @[reviewer]
 
@@ -141,6 +144,60 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
   -f body="Thank you! [brief acknowledgment]"
 ```
 
+#### 6.5 Comment ที่ต้อง Defer (งานที่จะทำภายหลัง)
+
+**IMPORTANT:** ห้ามตอบลอยๆ เช่น "will do later", "added to backlog" โดยไม่มี tracking
+
+เมื่อ review comment ต้องการงานที่ไม่สามารถทำใน PR นี้ได้:
+
+```bash
+# 1. สร้าง issue ก่อน
+DEFER_ISSUE=$(gh issue create \
+  --title "[type]: [descriptive title from comment]" \
+  --label "enhancement" \
+  --body "$(cat <<EOF
+## Overview
+
+From PR review comment by @[reviewer]
+
+## Original Comment
+
+> [quote the reviewer's comment]
+
+## Context
+
+- **PR:** #[pr_number]
+- **File:** [file_path]
+- **Line:** [line_number]
+
+## Proposed Work
+
+[description of what needs to be done]
+
+## Acceptance Criteria
+
+- [ ] [criteria based on reviewer's request]
+
+---
+
+*Created from PR review: [pr_url]*
+EOF
+)" --json number -q .number)
+
+# 2. Reply พร้อม issue reference
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+  -f body="Thanks for the feedback! Created #$DEFER_ISSUE to track this work."
+```
+
+**ตัวอย่าง Defer Cases:**
+
+| Review Comment | Issue Title | Label |
+|----------------|-------------|-------|
+| "Missing tests for this feature" | `test: add unit tests for [feature]` | `enhancement` |
+| "Consider adding error handling" | `fix: improve error handling in [component]` | `enhancement` |
+| "Documentation could be improved" | `docs: improve documentation for [feature]` | `documentation` |
+| "Performance could be better" | `perf: optimize [operation]` | `enhancement` |
+
 **Example - Multiple Comments:**
 
 ```bash
@@ -155,6 +212,16 @@ gh api repos/owner/repo/pulls/42/comments/124/replies \
 # Comment 3: คำถาม (comment_id: 125)
 gh api repos/owner/repo/pulls/42/comments/125/replies \
   -f body="Yes, this handles the edge case by..."
+
+# Comment 4: Defer - สร้าง issue ก่อน แล้ว reply (comment_id: 126)
+DEFER_ISSUE=$(gh issue create \
+  --title "test: add unit tests for auth handler" \
+  --label "enhancement" \
+  --body "From PR #42 review by @senior-dev..." \
+  --json number -q .number)
+
+gh api repos/owner/repo/pulls/42/comments/126/replies \
+  -f body="Thanks for the feedback! Created #$DEFER_ISSUE to track this work."
 ```
 
 ### Step 7: Update Related Issues
@@ -268,6 +335,12 @@ git push
 |---------|--------|--------|
 | [comment 1] | Fixed/Replied | Done |
 | [comment 2] | Fixed/Replied | Done |
+| [comment 3] | Deferred → #[issue] | Done |
+
+### Deferred Items (Issues Created)
+| Issue | Title | From Comment |
+|-------|-------|--------------|
+| #[number] | [title] | @[reviewer] on [file:line] |
 
 ### Files Modified
 - [file1]: [change description]
@@ -280,6 +353,7 @@ Created: `docs/learnings/[path]/[filename].md`
 - [ ] Wait for reviewer to re-review
 - [ ] Address any follow-up comments
 - [ ] Merge when approved
+- [ ] Work on deferred issues: #[number], #[number]
 
 ### Commands
 - `gh pr view` - View PR status
@@ -304,7 +378,7 @@ Found 1 open PR with reviews:
 **URL**: https://github.com/owner/repo/pull/42
 **Review Status**: CHANGES_REQUESTED
 
-### Review Comments (3)
+### Review Comments (4)
 
 1. 🔴 **@senior-dev** on `auth/handler.go:45`:
    > Consider using context.WithTimeout instead of context.Background()
@@ -312,7 +386,10 @@ Found 1 open PR with reviews:
 2. 🟡 **@senior-dev** on `auth/handler.go:78`:
    > This error message could be more descriptive
 
-3. ✅ **@senior-dev** general:
+3. 🟠 **@senior-dev** on `auth/handler.go:90`:
+   > Missing unit tests for this handler
+
+4. ✅ **@senior-dev** general:
    > Nice clean implementation overall!
 
 ### Processing...
@@ -327,9 +404,19 @@ Found 1 open PR with reviews:
 - Updated error message to include user ID and operation
 - Replied: "Fixed! Error now includes: user ID, operation type, and original error"
 
-#### Comment 3: Praise
+#### Comment 3: Missing tests
+- Status: **Deferred**
+- Created issue: #45 "test: add unit tests for auth handler"
+- Replied: "Thanks for the feedback! Created #45 to track this work."
+
+#### Comment 4: Praise
 - Status: **Acknowledged**
 - Replied: "Thank you! Appreciate the review"
+
+### Deferred Items
+| Issue | Title |
+|-------|-------|
+| #45 | test: add unit tests for auth handler |
 
 ### Learning Document Created
 `docs/learnings/2025-01/08/14.30_context-timeout-best-practice.md`
