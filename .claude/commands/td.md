@@ -244,16 +244,24 @@ echo "✓ Docs committed and pushed to PR #$PR_NUMBER"
 # ไม่มี PR หรือ PR ปิดแล้ว → สร้าง branch และ PR ใหม่สำหรับ docs
 echo "⚠️  No open PR - creating new docs branch and PR"
 
-# 1. Checkout main และ pull latest
+# 1. Stash uncommitted docs changes (ป้องกัน changes หาย)
+git stash push -m "docs-temp-$ISSUE" -- docs/
+echo "✓ Stashed docs changes"
+
+# 2. Checkout main และ pull latest
 git checkout main
 git pull origin main
 
-# 2. สร้าง docs branch ใหม่
+# 3. สร้าง docs branch ใหม่
 DOCS_BRANCH="docs/$ISSUE-retrospective"
 git checkout -b "$DOCS_BRANCH"
 echo "✓ Created branch: $DOCS_BRANCH"
 
-# 3. Stage และ commit docs
+# 4. Pop stash เพื่อดึง docs changes กลับมา
+git stash pop
+echo "✓ Restored docs changes"
+
+# 5. Stage และ commit docs
 git add docs/
 git commit -m "$(cat <<'EOF'
 docs: retrospective and session update for [TASK]
