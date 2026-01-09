@@ -1,3 +1,4 @@
 2026-01-09 00:53 | working | Improve subagents (commit-assistant, pr-review, session-review) (#2)
 2026-01-09 14:45 | pending | Improve subagents (commit-assistant, pr-review, session-review) (#2)
 2026-01-09 14:45 | working | Fix HEREDOC in /focus skill - variables not expanding (#3)
+2026-01-09 17:01 | working | Fix HEREDOC in /focus skill (#3) (resumed)
