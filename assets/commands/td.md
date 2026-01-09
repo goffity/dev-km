@@ -209,8 +209,16 @@ echo "PR_STATUS: $PR_STATUS"
 
 **Case A: PR ยังเปิดอยู่ (OPEN)**
 
+> **Note:** ต้องรัน section 7.1 ก่อนเพื่อให้ตัวแปร `PR_NUMBER` ถูกกำหนด
+
 ```bash
 # PR ยังเปิดอยู่ → commit และ push ไปที่ PR เดิม
+# ตรวจสอบว่า PR_NUMBER ถูกกำหนดแล้ว
+if [ -z "$PR_NUMBER" ]; then
+  echo "ERROR: PR_NUMBER variable is not set. Run section 7.1 first."
+  exit 1
+fi
+
 echo "✓ PR #$PR_NUMBER is open - committing to existing PR"
 
 # Check for docs changes
@@ -219,6 +227,12 @@ git status --short docs/
 
 # Stage all docs
 git add docs/
+
+# ตรวจสอบว่ามี changes ที่จะ commit หรือไม่
+if git diff --cached --quiet; then
+  echo "No changes to commit"
+  exit 0
+fi
 
 # Commit docs
 git commit -m "$(cat <<'EOF'
@@ -232,17 +246,26 @@ Related: #[issue-number]
 EOF
 )"
 
-# Push to update PR
-git push
+# Push to update PR (ensure upstream is configured)
+CURRENT_BRANCH=$(git branch --show-current)
+git push -u origin "$CURRENT_BRANCH"
 
 echo "✓ Docs committed and pushed to PR #$PR_NUMBER"
 ```
 
 **Case B: ไม่มี PR หรือ PR ถูก merged/closed แล้ว (NO_PR, CLOSED, NO_BRANCH)**
 
+> **Note:** ต้องรัน section 7.1 ก่อนเพื่อให้ตัวแปร `ISSUE` ถูกกำหนด
+
 ```bash
 # ไม่มี PR หรือ PR ปิดแล้ว → สร้าง branch และ PR ใหม่สำหรับ docs
 echo "⚠️  No open PR - creating new docs branch and PR"
+
+# ตรวจสอบว่า ISSUE ถูกกำหนดแล้ว
+if [ -z "$ISSUE" ]; then
+  echo "ERROR: ISSUE variable is not set. Run section 7.1 first."
+  exit 1
+fi
 
 # 1. Stash uncommitted docs changes (ป้องกัน changes หาย)
 git stash push -m "docs-temp-$ISSUE" -- docs/
@@ -261,8 +284,16 @@ echo "✓ Created branch: $DOCS_BRANCH"
 git stash pop
 echo "✓ Restored docs changes"
 
-# 5. Stage และ commit docs
+# 5. Stage docs
 git add docs/
+
+# 6. ตรวจสอบว่ามี changes ที่จะ commit หรือไม่
+if git diff --cached --quiet; then
+  echo "No changes to commit"
+  exit 0
+fi
+
+# 7. Commit docs
 git commit -m "$(cat <<'EOF'
 docs: retrospective and session update for [TASK]
 
@@ -274,10 +305,10 @@ Related: #[issue-number]
 EOF
 )"
 
-# 4. Push branch ใหม่
+# 8. Push branch ใหม่
 git push -u origin "$DOCS_BRANCH"
 
-# 5. สร้าง PR ใหม่สำหรับ docs
+# 9. สร้าง PR ใหม่สำหรับ docs
 gh pr create \
   --title "docs: retrospective for #$ISSUE" \
   --body "$(cat <<'EOF'
