@@ -91,7 +91,7 @@ export TZ='Asia/Bangkok'
 gh issue create \
   --title "[type]: [descriptive title]" \
   --label "session-log" \
-  --body "$(cat <<'EOF'
+  --body "$(cat <<EOF
 ## Overview
 
 [user input - brief description]
@@ -134,7 +134,7 @@ EOF
 
 ```bash
 export TZ='Asia/Bangkok'
-cat > docs/current.md << 'EOF'
+cat > docs/current.md << EOF
 STATE: working
 TASK: [task description from user]
 SINCE: $(date '+%Y-%m-%d %H:%M')

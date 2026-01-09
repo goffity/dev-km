@@ -101,7 +101,7 @@ echo "Issue: #$ISSUE"
 ```bash
 export TZ='Asia/Bangkok'
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## Session Summary
 
 ### Tasks Done
@@ -147,7 +147,7 @@ EOF
 export TZ='Asia/Bangkok'
 
 # For completed
-cat > docs/current.md << 'EOF'
+cat > docs/current.md << EOF
 STATE: completed
 TASK: [task from original focus]
 SINCE: $(date '+%Y-%m-%d %H:%M')

@@ -49,7 +49,7 @@ echo "Task: $TASK"
 export TZ='Asia/Bangkok'
 ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🧪 Running Tests
 
 **Started:** $(date '+%Y-%m-%d %H:%M')
@@ -79,7 +79,7 @@ echo "Exit code: $TEST_EXIT_CODE"
 export TZ='Asia/Bangkok'
 ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🧪 Tests Failed ❌
 
 **Time:** $(date '+%Y-%m-%d %H:%M')
@@ -101,7 +101,7 @@ EOF
 export TZ='Asia/Bangkok'
 ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🧪 Tests Passed ✅
 
 **Time:** $(date '+%Y-%m-%d %H:%M')
@@ -133,7 +133,7 @@ echo "Exit code: $BUILD_EXIT_CODE"
 export TZ='Asia/Bangkok'
 ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🏗️ Build Failed ❌
 
 **Time:** $(date '+%Y-%m-%d %H:%M')
@@ -155,7 +155,7 @@ EOF
 export TZ='Asia/Bangkok'
 ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🏗️ Build Passed ✅
 
 **Time:** $(date '+%Y-%m-%d %H:%M')
@@ -174,7 +174,7 @@ EOF
 export TZ='Asia/Bangkok'
 ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🔍 Code Review Started
 
 **Time:** $(date '+%Y-%m-%d %H:%M')
@@ -232,7 +232,7 @@ Pass / Fail with reason"
 export TZ='Asia/Bangkok'
 ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🔍 Code Review Failed ❌
 
 **Time:** $(date '+%Y-%m-%d %H:%M')
@@ -275,7 +275,7 @@ After fixing, output a summary of changes made."
 export TZ='Asia/Bangkok'
 ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🔧 Auto-fix Applied
 
 **Time:** $(date '+%Y-%m-%d %H:%M')
@@ -296,7 +296,7 @@ EOF
 export TZ='Asia/Bangkok'
 ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 
-gh issue comment $ISSUE --body "$(cat <<'EOF'
+gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🔍 Code Review Passed ✅
 
 **Time:** $(date '+%Y-%m-%d %H:%M')
