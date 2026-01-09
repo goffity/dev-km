@@ -1,5 +1,5 @@
 STATE: completed
-TASK: /pr-review ควรใส่ commit hash เมื่อตอบ Fixed
-SINCE: 2026-01-09 20:37
-ISSUE: #5
-BRANCH: fix/5-pr-review-commit-hash
+TASK: /td ควรตรวจสอบ PR status ก่อน commit docs
+SINCE: 2026-01-09 21:16
+ISSUE: #8
+BRANCH: fix/8-td-pr-status-check
