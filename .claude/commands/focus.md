@@ -4,7 +4,7 @@ description: Set current focus - update docs/current.md and log to activity.log
 
 # Set Focus
 
-ตั้ง focus สำหรับงานใหม่ พร้อมสร้าง GitHub issue ด้วย format มาตรฐาน
+ตั้ง focus สำหรับงานใหม่ พร้อมสร้าง issue (GitHub หรือ Jira) ด้วย format มาตรฐาน
 
 ## Usage
 
@@ -32,7 +32,7 @@ git status --short
 ถ้า `STATE` ไม่ใช่ `ready` หรือ `completed`:
 
 ```
-⚠️  มี focus อยู่แล้ว:
+มี focus อยู่แล้ว:
 TASK: [current task]
 STATE: [current state]
 
@@ -51,6 +51,34 @@ STATE: [current state]
 ```
 
 ถ้ามี argument → ใช้เป็น task description
+
+### Step 3.5: Choose Issue Tracker
+
+ใช้ AskUserQuestion เพื่อเลือก issue tracker:
+
+**ตรวจสอบ Jira config ก่อน:**
+```bash
+if [[ -f ".jira-config" ]] || [[ -f "$HOME/.config/claude-km/jira.conf" ]]; then
+    echo "Jira: configured"
+else
+    echo "Jira: not configured"
+fi
+```
+
+**ถ้ามี Jira config:**
+```
+เลือก Issue Tracker:
+1. GitHub Issues - สร้าง GitHub issue ใหม่
+2. Jira - สร้าง Jira issue ใหม่
+3. Jira (existing) - ดึง Jira issue ที่มีอยู่มาทำ
+```
+
+**ถ้าไม่มี Jira config:**
+ข้ามไป Step 4 (ใช้ GitHub เป็น default)
+
+---
+
+## Path A: GitHub Issues (Default)
 
 ### Step 4: Gather Issue Details
 
@@ -90,7 +118,6 @@ export TZ='Asia/Bangkok'
 
 gh issue create \
   --title "[type]: [descriptive title]" \
-  --label "session-log" \
   --body "$(cat <<EOF
 ## Overview
 
@@ -121,14 +148,93 @@ gh issue create \
 
 - **Started:** $(date '+%Y-%m-%d %H:%M')
 - **Branch:** [type]/[issue-number]-[short-slug]
-- **Status:** 🔄 In Progress
+- **Status:** In Progress
 EOF
 )"
 ```
 
 เก็บ issue number ที่ได้ (เช่น `#123`) ไว้ใช้ใน Step 6
 
-### Step 5.5: Create Feature Branch (Required)
+**ไปที่ Step 6: Create Feature Branch**
+
+---
+
+## Path B: Jira (New Issue)
+
+### Step 4B: Gather Jira Issue Details
+
+ใช้ AskUserQuestion:
+
+1. **Project Key**: รหัส project ใน Jira (e.g., PROJ)
+2. **Issue Type**: Task, Bug, Story, Epic
+3. **Summary**: หัวข้อ issue
+4. **Description**: รายละเอียด
+
+### Step 5B: Create Jira Issue
+
+```bash
+# Get Jira type to git type mapping
+# Bug -> fix, Task/Story/Epic -> feat, Improvement -> refactor
+JIRA_TYPE="[selected type]"
+case "$JIRA_TYPE" in
+    Bug) GIT_TYPE="fix" ;;
+    Improvement) GIT_TYPE="refactor" ;;
+    *) GIT_TYPE="feat" ;;
+esac
+
+# Create issue
+RESULT=$(./scripts/jira-client.sh create "[PROJECT]" "[SUMMARY]" "[DESCRIPTION]" "[JIRA_TYPE]")
+ISSUE_KEY=$(echo "$RESULT" | grep -E '^[A-Z]+-[0-9]+$' | head -1)
+
+echo "Created: $ISSUE_KEY"
+```
+
+เก็บ `ISSUE_KEY` (เช่น `PROJ-123`) ไว้ใช้ใน Step 6
+
+**ไปที่ Step 6: Create Feature Branch**
+
+---
+
+## Path C: Jira (Existing Issue)
+
+### Step 4C: Select Existing Jira Issue
+
+**แสดง issues ที่ assign ให้ user:**
+```bash
+./scripts/jira-client.sh my-issues
+```
+
+**หรือ list issues ใน project:**
+```bash
+./scripts/jira-client.sh list [PROJECT] "To Do"
+```
+
+**ถาม user:**
+```
+ใส่ Issue Key ที่ต้องการทำ (e.g., PROJ-123):
+```
+
+### Step 5C: Fetch Issue Details
+
+```bash
+./scripts/jira-client.sh get [ISSUE_KEY]
+```
+
+**Map Jira type to git type:**
+```bash
+JIRA_TYPE=$(./scripts/jira-client.sh get [ISSUE_KEY] | jq -r '.type')
+case "$JIRA_TYPE" in
+    Bug) GIT_TYPE="fix" ;;
+    Improvement) GIT_TYPE="refactor" ;;
+    *) GIT_TYPE="feat" ;;
+esac
+```
+
+**ไปที่ Step 6: Create Feature Branch**
+
+---
+
+## Step 6: Create Feature Branch (Required)
 
 **ข้อบังคับ:** ถ้าอยู่บน `main`, `master`, หรือ default branch ต้องสร้าง branch ใหม่เสมอ
 
@@ -149,29 +255,27 @@ fi
 
 # ตรวจสอบว่าอยู่บน main/master/default branch หรือไม่
 if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ] || [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
-  echo "⚠️  Currently on $CURRENT_BRANCH - creating feature branch..."
+  echo "Currently on $CURRENT_BRANCH - creating feature branch..."
 
-  # สร้าง branch name จาก type และ issue number
-  # Format: [type]/[issue-number]-[short-description]
-  # Example: feat/123-add-user-auth, fix/45-login-timeout
+  # สร้าง branch name
+  # GitHub: [type]/[issue-number]-[short-slug]
+  # Jira: [type]/[ISSUE-KEY]-[short-slug]
 
-  git checkout -b "[type]/[issue-number]-[short-slug]"
-  echo "✓ Created and switched to branch: [type]/[issue-number]-[short-slug]"
+  git checkout -b "[type]/[issue-id]-[short-slug]"
+  echo "Created and switched to branch: [type]/[issue-id]-[short-slug]"
 else
-  echo "✓ Already on feature branch: $CURRENT_BRANCH"
+  echo "Already on feature branch: $CURRENT_BRANCH"
 fi
 ```
 
 **Branch Naming Convention:**
 
-| Type | Branch Prefix | Example |
-|------|---------------|---------|
-| feat | `feat/` | `feat/123-add-user-auth` |
-| fix | `fix/` | `fix/45-login-timeout` |
-| refactor | `refactor/` | `refactor/67-simplify-auth` |
-| docs | `docs/` | `docs/89-update-readme` |
-| test | `test/` | `test/12-add-unit-tests` |
-| chore | `chore/` | `chore/34-update-deps` |
+| Type | Branch Prefix | GitHub Example | Jira Example |
+|------|---------------|----------------|--------------|
+| feat | `feat/` | `feat/123-add-auth` | `feat/PROJ-123-add-auth` |
+| fix | `fix/` | `fix/45-login-bug` | `fix/PROJ-45-login-bug` |
+| refactor | `refactor/` | `refactor/67-simplify` | `refactor/PROJ-67-simplify` |
+| docs | `docs/` | `docs/89-readme` | `docs/PROJ-89-readme` |
 
 **Short slug rules:**
 - ใช้ lowercase
@@ -179,10 +283,11 @@ fi
 - ตัดคำที่ไม่จำเป็นออก (a, an, the)
 - จำกัดความยาวไม่เกิน 30 ตัวอักษร
 
-### Step 6: Update Files
+## Step 7: Update Files
 
 **Update `docs/current.md`:**
 
+For GitHub:
 ```bash
 export TZ='Asia/Bangkok'
 cat > docs/current.md << EOF
@@ -194,17 +299,47 @@ BRANCH: [type]/[issue-number]-[short-slug]
 EOF
 ```
 
+For Jira:
+```bash
+export TZ='Asia/Bangkok'
+cat > docs/current.md << EOF
+STATE: working
+TASK: [ISSUE_KEY] - [summary]
+SINCE: $(date '+%Y-%m-%d %H:%M')
+ISSUE: [ISSUE_KEY]
+BRANCH: [type]/[ISSUE_KEY]-[short-slug]
+JIRA_URL: https://[domain]/browse/[ISSUE_KEY]
+EOF
+```
+
 **Append to `docs/logs/activity.log`:**
 
 ```bash
 export TZ='Asia/Bangkok'
-echo "$(date '+%Y-%m-%d %H:%M') | working | [task description] (#[issue-number])" >> docs/logs/activity.log
+echo "$(date '+%Y-%m-%d %H:%M') | working | [task description] ([issue-id])" >> docs/logs/activity.log
 ```
 
-### Step 7: Confirm
+## Step 8: Jira Post-Setup (Jira only)
 
+**Transition to In Progress (if available):**
+```bash
+# Get available transitions
+./scripts/jira-client.sh transitions [ISSUE_KEY]
+
+# Apply "In Progress" or similar transition
+./scripts/jira-client.sh transition [ISSUE_KEY] [transition_id]
+```
+
+**Assign to self:**
+```bash
+./scripts/jira-client.sh assign [ISSUE_KEY] me
+```
+
+## Step 9: Confirm
+
+**For GitHub:**
 ```markdown
-## Focus Set ✓
+## Focus Set
 
 **Issue Created:** #[issue-number]
 **Title:** [type]: [title]
@@ -218,6 +353,25 @@ SINCE: [timestamp]
 - [ ] [criteria 1]
 - [ ] [criteria 2]
 - [ ] [criteria 3]
+
+พร้อมเริ่มงาน! ใช้ `/td` เมื่อจบ session
+```
+
+**For Jira:**
+```markdown
+## Focus Set
+
+**Jira Issue:** [ISSUE_KEY]
+**Summary:** [summary]
+**URL:** https://[domain]/browse/[ISSUE_KEY]
+**Branch:** [type]/[ISSUE_KEY]-[short-slug]
+
+STATE: working
+TASK: [ISSUE_KEY] - [summary]
+SINCE: [timestamp]
+
+Status: In Progress
+Assigned to: you
 
 พร้อมเริ่มงาน! ใช้ `/td` เมื่อจบ session
 ```
@@ -252,3 +406,12 @@ SINCE: [timestamp]
 | `pending` | รอทำต่อ | `/recap` แล้ว `/focus` |
 | `blocked` | ติดปัญหา | แก้ปัญหาก่อน |
 | `completed` | เสร็จแล้ว | `/focus` งานใหม่ |
+
+## Related Commands
+
+| Command | Description |
+|---------|-------------|
+| `/jira init` | ตั้งค่า Jira credentials |
+| `/jira list` | ดู Jira issues |
+| `/jira start` | เริ่มทำ Jira issue (alternative to /focus) |
+| `/td` | จบ session + retrospective |
