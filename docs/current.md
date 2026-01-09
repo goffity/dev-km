@@ -1,4 +1,4 @@
 STATE: working
-TASK: Improve subagents (commit-assistant, pr-review, session-review)
-SINCE: 2026-01-09 00:53
-ISSUE: #2
+TASK: Fix HEREDOC in /focus skill - variables not expanding
+SINCE: 2026-01-09 14:45
+ISSUE: #3
