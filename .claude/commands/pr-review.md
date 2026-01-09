@@ -108,9 +108,13 @@ gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | {id, body, u
 #### 6.1 Comment ที่ต้องแก้ไข
 
 ```bash
+# หลัง commit แก้ไข - เก็บ hash
+COMMIT_HASH=$(git rev-parse --short HEAD)
+
 # Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
+# IMPORTANT: ใส่ commit hash เพื่อให้ reviewer trace ได้
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
-  -f body="Fixed!
+  -f body="Fixed in $COMMIT_HASH!
 
 - [description of what was changed]
 - [code snippet if relevant]"
@@ -203,8 +207,9 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 
 ```bash
 # Comment 1: ต้องแก้ไข (comment_id: 123)
+COMMIT_HASH=$(git rev-parse --short HEAD)  # e.g., ce97912
 gh api repos/owner/repo/pulls/42/comments/123/replies \
-  -f body="Fixed! Changed context.Background() to context.WithTimeout(ctx, 30*time.Second)"
+  -f body="Fixed in $COMMIT_HASH! Changed context.Background() to context.WithTimeout(ctx, 30*time.Second)"
 
 # Comment 2: ไม่แก้ไข (comment_id: 124)
 gh api repos/owner/repo/pulls/42/comments/124/replies \
@@ -398,12 +403,14 @@ Found 1 open PR with reviews:
 #### Comment 1: Context timeout
 - Status: **Fixed**
 - Changed `context.Background()` to `context.WithTimeout(ctx, 30*time.Second)`
-- Replied: "Fixed! Added 30-second timeout for database operations"
+- Commit: `ce97912`
+- Replied: "Fixed in ce97912! Added 30-second timeout for database operations"
 
 #### Comment 2: Error message
 - Status: **Fixed**
 - Updated error message to include user ID and operation
-- Replied: "Fixed! Error now includes: user ID, operation type, and original error"
+- Commit: `ce97912`
+- Replied: "Fixed in ce97912! Error now includes: user ID, operation type, and original error"
 
 #### Comment 3: Missing tests
 - Status: **Deferred**
