@@ -3,3 +3,4 @@
 2026-01-09 14:45 | working | Fix HEREDOC in /focus skill - variables not expanding (#3)
 2026-01-09 17:01 | working | Fix HEREDOC in /focus skill (#3) (resumed)
 2026-01-09 18:39 | completed | Fix HEREDOC in /focus skill (#3)
+2026-01-09 18:48 | working | /pr-review ควรสร้าง issue เมื่อ defer (#4)
