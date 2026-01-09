@@ -152,10 +152,11 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 
 ```bash
 # 1. สร้าง issue ก่อน
+# IMPORTANT: ใช้ <<'EOF' (quoted) เพื่อป้องกัน shell expansion จาก reviewer comment
 DEFER_ISSUE=$(gh issue create \
   --title "[type]: [descriptive title from comment]" \
   --label "enhancement" \
-  --body "$(cat <<EOF
+  --body "$(cat <<'EOF'
 ## Overview
 
 From PR review comment by @[reviewer]
@@ -195,7 +196,7 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 |----------------|-------------|-------|
 | "Missing tests for this feature" | `test: add unit tests for [feature]` | `enhancement` |
 | "Consider adding error handling" | `fix: improve error handling in [component]` | `enhancement` |
-| "Documentation could be improved" | `docs: improve documentation for [feature]` | `documentation` |
+| "Documentation could be improved" | `docs: improve documentation for [feature]` | `enhancement` |
 | "Performance could be better" | `perf: optimize [operation]` | `enhancement` |
 
 **Example - Multiple Comments:**
@@ -419,7 +420,7 @@ Found 1 open PR with reviews:
 | #45 | test: add unit tests for auth handler |
 
 ### Learning Document Created
-`docs/learnings/2025-01/08/14.30_context-timeout-best-practice.md`
+`docs/learnings/2026-01/08/14.30_context-timeout-best-practice.md`
 
 ### Changes Committed and Pushed
 Commit: `fix: address PR review feedback`
