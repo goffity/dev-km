@@ -108,17 +108,27 @@ gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | {id, body, u
 #### 6.1 Comment ที่ต้องแก้ไข
 
 ```bash
-# หลัง commit แก้ไข - เก็บ hash
+# 1. แก้โค้ดตาม review comment แล้ว commit
+git add .
+git commit -m "fix: [short description of fix]"
+
+# 2. เก็บ hash ของ commit ที่เพิ่ง commit
 COMMIT_HASH=$(git rev-parse --short HEAD)
 
-# Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
+# 3. Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
 # IMPORTANT: ใส่ commit hash เพื่อให้ reviewer trace ได้
+# IMPORTANT: ใช้ <<'EOF' (quoted) เพื่อป้องกัน shell injection
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
-  -f body="Fixed in $COMMIT_HASH!
+  -f body="$(cat <<'EOF'
+Fixed in COMMIT_HASH_PLACEHOLDER!
 
 - [description of what was changed]
-- [code snippet if relevant]"
+- [code snippet if relevant]
+EOF
+)" | sed "s/COMMIT_HASH_PLACEHOLDER/$COMMIT_HASH/"
 ```
+
+**หมายเหตุ:** ถ้าแก้หลาย comments ใน commit เดียว ทุก reply จะใช้ hash เดียวกัน
 
 #### 6.2 Comment ที่ไม่ต้องแก้ไข
 
@@ -206,8 +216,11 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 **Example - Multiple Comments:**
 
 ```bash
-# Comment 1: ต้องแก้ไข (comment_id: 123)
+# หลัง commit แก้ไขแล้ว - เก็บ hash
 COMMIT_HASH=$(git rev-parse --short HEAD)  # e.g., ce97912
+
+# Comment 1: ต้องแก้ไข (comment_id: 123)
+# ใช้ heredoc เพื่อป้องกัน shell injection
 gh api repos/owner/repo/pulls/42/comments/123/replies \
   -f body="Fixed in $COMMIT_HASH! Changed context.Background() to context.WithTimeout(ctx, 30*time.Second)"
 
@@ -409,7 +422,7 @@ Found 1 open PR with reviews:
 #### Comment 2: Error message
 - Status: **Fixed**
 - Updated error message to include user ID and operation
-- Commit: `ce97912`
+- Commit: `ce97912` *(same commit as Comment 1 - both fixes were made together)*
 - Replied: "Fixed in ce97912! Error now includes: user ID, operation type, and original error"
 
 #### Comment 3: Missing tests
