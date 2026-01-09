@@ -5,6 +5,51 @@
 set -e
 
 # =============================================================================
+# Dependency Checks
+# =============================================================================
+
+check_dependencies() {
+    local missing=()
+    command -v jq >/dev/null 2>&1 || missing+=("jq")
+    command -v curl >/dev/null 2>&1 || missing+=("curl")
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "Error: Missing required dependencies: ${missing[*]}" >&2
+        echo "Please install them and try again." >&2
+        return 1
+    fi
+}
+
+# Run dependency check early (except for help)
+if [[ "${1:-}" != "help" ]] && [[ "${1:-}" != "--help" ]] && [[ "${1:-}" != "-h" ]] && [[ -n "${1:-}" ]]; then
+    check_dependencies || exit 1
+fi
+
+# =============================================================================
+# Input Validation
+# =============================================================================
+
+# Validate issue key format (PROJECT-123)
+validate_issue_key() {
+    local key="$1"
+    if [[ ! "$key" =~ ^[A-Z][A-Z0-9]+-[0-9]+$ ]]; then
+        echo "Error: Invalid issue key format: $key" >&2
+        echo "Expected format: PROJECT-123 (e.g., PROJ-42)" >&2
+        return 1
+    fi
+}
+
+# Validate transition ID (numeric)
+validate_transition_id() {
+    local id="$1"
+    if [[ ! "$id" =~ ^[0-9]+$ ]]; then
+        echo "Error: Invalid transition ID: $id" >&2
+        echo "Transition ID must be numeric" >&2
+        return 1
+    fi
+}
+
+# =============================================================================
 # Configuration
 # =============================================================================
 
@@ -176,50 +221,50 @@ cmd_create() {
         return 1
     fi
 
-    # Convert description to Atlassian Document Format (ADF)
-    local adf_description=""
+    # Build payload using jq for safe JSON escaping
+    local payload
     if [[ -n "$description" ]]; then
-        adf_description=$(cat << EOF
-"description": {
-    "type": "doc",
-    "version": 1,
-    "content": [
-        {
-            "type": "paragraph",
-            "content": [
-                {
-                    "type": "text",
-                    "text": $(echo "$description" | jq -Rs '.')
+        payload=$(jq -n \
+            --arg project "$project" \
+            --arg summary "$summary" \
+            --arg description "$description" \
+            --arg issue_type "$issue_type" \
+            '{
+                fields: {
+                    project: { key: $project },
+                    summary: $summary,
+                    description: {
+                        type: "doc",
+                        version: 1,
+                        content: [{
+                            type: "paragraph",
+                            content: [{
+                                type: "text",
+                                text: $description
+                            }]
+                        }]
+                    },
+                    issuetype: { name: $issue_type }
                 }
-            ]
-        }
-    ]
-},
-EOF
-)
+            }')
+    else
+        payload=$(jq -n \
+            --arg project "$project" \
+            --arg summary "$summary" \
+            --arg issue_type "$issue_type" \
+            '{
+                fields: {
+                    project: { key: $project },
+                    summary: $summary,
+                    issuetype: { name: $issue_type }
+                }
+            }')
     fi
-
-    local payload=$(cat << EOF
-{
-    "fields": {
-        "project": {
-            "key": "$project"
-        },
-        "summary": "$summary",
-        ${adf_description}
-        "issuetype": {
-            "name": "$issue_type"
-        }
-    }
-}
-EOF
-)
 
     local result=$(jira_api POST "/issue" "$payload")
 
     if echo "$result" | jq -e '.key' > /dev/null 2>&1; then
         local key=$(echo "$result" | jq -r '.key')
-        local id=$(echo "$result" | jq -r '.id')
         echo "Created: $key"
         echo "URL: https://${JIRA_DOMAIN}/browse/$key"
         echo "$key"
@@ -240,6 +285,8 @@ cmd_get() {
         echo "Usage: jira-client.sh get <issue_key>" >&2
         return 1
     fi
+
+    validate_issue_key "$issue_key" || return 1
 
     local result=$(jira_api GET "/issue/$issue_key")
 
@@ -318,6 +365,8 @@ cmd_transitions() {
         return 1
     fi
 
+    validate_issue_key "$issue_key" || return 1
+
     local result=$(jira_api GET "/issue/$issue_key/transitions")
     echo "$result" | jq -r '.transitions[] | "\(.id)\t\(.name)"' | column -t -s $'\t'
 }
@@ -335,7 +384,11 @@ cmd_transition() {
         return 1
     fi
 
-    local payload="{\"transition\": {\"id\": \"$transition_id\"}}"
+    validate_issue_key "$issue_key" || return 1
+    validate_transition_id "$transition_id" || return 1
+
+    # Build payload using jq for safe JSON
+    local payload=$(jq -n --arg id "$transition_id" '{transition: {id: $id}}')
     local result=$(jira_api POST "/issue/$issue_key/transitions" "$payload")
 
     if [[ -z "$result" ]]; then
@@ -361,26 +414,22 @@ cmd_comment() {
         return 1
     fi
 
-    local payload=$(cat << EOF
-{
-    "body": {
-        "type": "doc",
-        "version": 1,
-        "content": [
-            {
-                "type": "paragraph",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": $(echo "$comment" | jq -Rs '.')
-                    }
-                ]
-            }
-        ]
-    }
-}
-EOF
-)
+    validate_issue_key "$issue_key" || return 1
+
+    # Build payload using jq for safe JSON escaping
+    local payload=$(jq -n --arg comment "$comment" '{
+        body: {
+            type: "doc",
+            version: 1,
+            content: [{
+                type: "paragraph",
+                content: [{
+                    type: "text",
+                    text: $comment
+                }]
+            }]
+        }
+    }')
 
     local result=$(jira_api POST "/issue/$issue_key/comment" "$payload")
 
@@ -405,16 +454,19 @@ cmd_assign() {
         return 1
     fi
 
+    validate_issue_key "$issue_key" || return 1
+
     # Get current user's account ID if "me"
     if [[ "$account_id" == "me" ]]; then
         account_id=$(jira_api GET "/myself" | jq -r '.accountId')
     fi
 
+    # Build payload using jq for safe JSON escaping
     local payload
     if [[ "$account_id" == "-1" ]] || [[ -z "$account_id" ]]; then
         payload='{"accountId": null}'
     else
-        payload="{\"accountId\": \"$account_id\"}"
+        payload=$(jq -n --arg id "$account_id" '{accountId: $id}')
     fi
 
     local result=$(jira_api PUT "/issue/$issue_key/assignee" "$payload")
@@ -448,7 +500,7 @@ cmd_my_issues() {
     local encoded_jql=$(echo "$jql" | jq -sRr @uri)
     local result=$(jira_api GET "/search?jql=$encoded_jql&maxResults=$max_results&fields=key,summary,status,issuetype,project")
 
-    echo "$result" | jq -r '.issues[] | "\(.fields.project.key)-\(.key)\t\(.fields.status.name)\t\(.fields.summary)"' | column -t -s $'\t'
+    echo "$result" | jq -r '.issues[] | "\(.key)\t\(.fields.status.name)\t\(.fields.summary)"' | column -t -s $'\t'
 }
 
 # Show status/config info
