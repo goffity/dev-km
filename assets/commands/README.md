@@ -97,7 +97,7 @@
 | Command | Description | Usage |
 |---------|-------------|-------|
 | `/recap` | โหลด context เริ่ม session | `/recap` |
-| `/focus` | ตั้ง focus + สร้าง issue | `/focus [task description]` |
+| `/focus` | ตั้ง focus + สร้าง issue (GitHub/Jira) | `/focus [task description]` |
 | `/td` | สร้าง retrospective + comment issue | `/td [done\|pending\|blocked]` |
 
 ### Git & Code
@@ -117,6 +117,23 @@
 | `/mem` | Quick knowledge capture | `/mem [title]` |
 | `/distill` | Extract patterns จาก learnings | `/distill [topic]` |
 | `/improve` | Work on pending improvements | `/improve` |
+
+### Jira Integration
+
+| Command | Description | Usage |
+|---------|-------------|-------|
+| `/jira init` | ตั้งค่า Jira credentials | `/jira init` |
+| `/jira test` | ทดสอบ connection | `/jira test` |
+| `/jira list` | แสดง issues ใน project | `/jira list [project] [status]` |
+| `/jira my` | แสดง issues ที่ assign ให้ฉัน | `/jira my [status]` |
+| `/jira get` | ดู issue details | `/jira get PROJ-123` |
+| `/jira create` | สร้าง issue ใหม่ | `/jira create` |
+| `/jira search` | ค้นหา issues | `/jira search "query"` |
+| `/jira transitions` | ดู transitions ที่ทำได้ | `/jira transitions PROJ-123` |
+| `/jira transition` | เปลี่ยน status | `/jira transition PROJ-123 21` |
+| `/jira comment` | เพิ่ม comment | `/jira comment PROJ-123 "text"` |
+
+> See [references/jira-integration.md](../../references/jira-integration.md) for full documentation.
 
 ---
 
@@ -178,7 +195,26 @@
 
 ---
 
-## Issue Format
+## Issue Tracker Integration
+
+`/focus` รองรับทั้ง GitHub Issues และ Jira:
+
+| Tracker | Setup | Usage |
+|---------|-------|-------|
+| GitHub Issues | ไม่ต้องตั้งค่า (default) | เลือก "GitHub Issues" |
+| Jira | `/jira init` ครั้งแรก | เลือก "Jira" หรือ "Jira (existing)" |
+
+```
+/focus [task]
+     │
+     ├── ถ้ามี Jira config ──→ เลือก: GitHub / Jira (new) / Jira (existing)
+     │
+     └── ถ้าไม่มี Jira ──→ ใช้ GitHub Issues (default)
+```
+
+---
+
+## Issue Format (GitHub)
 
 เมื่อใช้ `/focus` จะถามข้อมูลและสร้าง issue ด้วย format:
 
