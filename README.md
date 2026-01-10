@@ -85,6 +85,7 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 | `/jira search <query>` | ค้นหา issues | `/jira search "login bug"` |
 | `/jira transitions <key>` | ดู transitions ที่ทำได้ | `/jira transitions PROJ-123` |
 | `/jira transition <key> <id>` | เปลี่ยน status | `/jira transition PROJ-123 21` |
+| `/jira comment <key> <text>` | เพิ่ม comment | `/jira comment PROJ-123 "text"` |
 
 > See [references/jira-integration.md](references/jira-integration.md) for full documentation.
 
