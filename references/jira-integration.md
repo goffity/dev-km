@@ -219,7 +219,7 @@ Output:
 
 **Technical Details:**
 
-- ใช้ JQL (Jira Query Language) `text ~ "query"` สำหรับ fuzzy search
+- ใช้ JQL (Jira Query Language) `text ~ "query"` สำหรับ text search (ค้นหาด้วย wildcard)
 - ค้นหาใน summary, description, และ comments
 - **Requirement:** Jira project ต้องเปิด text indexing (default enabled)
 - ถ้าค้นหาไม่เจอ ตรวจสอบที่ Project Settings > Features > Text Indexing

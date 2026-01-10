@@ -126,12 +126,12 @@
 | `/jira test` | ทดสอบ connection | `/jira test` |
 | `/jira list` | แสดง issues ใน project | `/jira list [project] [status]` |
 | `/jira my` | แสดง issues ที่ assign ให้ฉัน | `/jira my [status]` |
-| `/jira get` | ดู issue details | `/jira get PROJ-123` |
+| `/jira get <key>` | ดู issue details | `/jira get PROJ-123` |
 | `/jira create` | สร้าง issue ใหม่ | `/jira create` |
-| `/jira search` | ค้นหา issues | `/jira search "query"` |
-| `/jira transitions` | ดู transitions ที่ทำได้ | `/jira transitions PROJ-123` |
-| `/jira transition` | เปลี่ยน status | `/jira transition PROJ-123 21` |
-| `/jira comment` | เพิ่ม comment | `/jira comment PROJ-123 "text"` |
+| `/jira search <query>` | ค้นหา issues | `/jira search "query"` |
+| `/jira transitions <key>` | ดู transitions ที่ทำได้ | `/jira transitions PROJ-123` |
+| `/jira transition <key> <id>` | เปลี่ยน status | `/jira transition PROJ-123 21` |
+| `/jira comment <key> <text>` | เพิ่ม comment | `/jira comment PROJ-123 "text"` |
 
 > See [references/jira-integration.md](../../references/jira-integration.md) for full documentation.
 
