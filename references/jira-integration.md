@@ -217,6 +217,26 @@ Output:
 /jira search "login error" PROJ 30   # Limit results
 ```
 
+**Technical Details:**
+
+- ใช้ JQL (Jira Query Language) `text ~ "query"` สำหรับ text search (ค้นหาด้วย wildcard)
+- ค้นหาใน summary, description, และ comments
+- **Requirement:** Jira project ต้องเปิด text indexing (default enabled)
+- ถ้าค้นหาไม่เจอ ตรวจสอบที่ Project Settings > Features > Text Indexing
+
+**Search Tips:**
+
+```bash
+# Exact phrase (ใส่ quotes)
+/jira search "user login failed"
+
+# Multiple words (OR by default)
+/jira search "login authentication"
+
+# Wildcard
+/jira search "auth*"
+```
+
 ---
 
 ### Status Management Commands

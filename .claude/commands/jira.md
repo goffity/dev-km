@@ -22,6 +22,7 @@ description: Jira integration - create, list, fetch, and manage Jira issues
 | `/jira my` | แสดง issues ที่ assign ให้ฉัน |
 | `/jira get <key>` | ดู issue details |
 | `/jira create` | สร้าง issue ใหม่ |
+| `/jira search <query>` | ค้นหา issues |
 | `/jira transitions <key>` | ดู transitions ที่ทำได้ |
 | `/jira transition <key> <id>` | เปลี่ยน status ด้วย transition ID |
 | `/jira comment <key>` | เพิ่ม comment |

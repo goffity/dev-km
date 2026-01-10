@@ -12,6 +12,7 @@
 - 🤖 **Auto-Capture**: บันทึก session อัตโนมัติ พร้อม AI analysis
 - 📋 **Session Management**: /recap → /focus → /td workflow
 - 🔗 **GitHub Integration**: สร้าง Issues + PRs อัตโนมัติ
+- 🎫 **Jira Integration**: สร้าง/จัดการ Jira issues (Atlassian Cloud)
 - ✅ **Code Review**: /review ก่อน push
 - 🔔 **Notification Hooks**: แจ้งเตือนเมื่อ Claude ต้องการ input (รองรับ Multi-Tab Workflow)
 
@@ -49,7 +50,7 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 | Command | Purpose | Usage |
 |---------|---------|-------|
 | `/recap` | เริ่ม session - โหลด context เดิม | `/recap` |
-| `/focus [task]` | ตั้ง focus + สร้าง GitHub issue | `/focus Implement feature X` |
+| `/focus [task]` | ตั้ง focus + สร้าง issue (GitHub/Jira) | `/focus Implement feature X` |
 | `/td [status]` | จบ session: สร้าง retrospective | `/td done` |
 
 ### Git & Code
@@ -70,6 +71,23 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 | `/distill [topic]` | 2 | Extract patterns | `docs/knowledge-base/[topic].md` |
 | `/td` | 3 | Post-task retrospective | `docs/retrospective/YYYY-MM/retrospective_*.md` |
 | `/improve` | 4 | Work on pending items | Implementation |
+
+### Jira Integration
+
+| Command | Purpose | Usage |
+|---------|---------|-------|
+| `/jira init` | ตั้งค่า Jira credentials | `/jira init` |
+| `/jira test` | ทดสอบ connection | `/jira test` |
+| `/jira list [project]` | แสดง issues ใน project | `/jira list PROJ` |
+| `/jira my` | แสดง issues ที่ assign ให้ฉัน | `/jira my` |
+| `/jira get <key>` | ดู issue details | `/jira get PROJ-123` |
+| `/jira create` | สร้าง issue ใหม่ (interactive) | `/jira create` |
+| `/jira search <query>` | ค้นหา issues | `/jira search "login bug"` |
+| `/jira transitions <key>` | ดู transitions ที่ทำได้ | `/jira transitions PROJ-123` |
+| `/jira transition <key> <id>` | เปลี่ยน status | `/jira transition PROJ-123 21` |
+| `/jira comment <key> <text>` | เพิ่ม comment | `/jira comment PROJ-123 "text"` |
+
+> See [references/jira-integration.md](references/jira-integration.md) for full documentation.
 
 ## Session Lifecycle
 
@@ -282,12 +300,14 @@ knowledge-management-skill/
 │   ├── auto-capture.sh         # Auto session capture
 │   ├── ai-capture.sh           # AI-powered capture
 │   ├── claude-wrap.sh          # Claude wrapper
-│   └── notify.sh               # macOS notification script
+│   ├── notify.sh               # macOS notification script
+│   └── jira-client.sh          # Jira API client
 ├── references/
 │   ├── mem-template.md         # Full /mem template
 │   ├── distill-template.md     # Full /distill template
 │   ├── td-template.md          # Full /td template
-│   └── improve-workflow.md     # /improve workflow
+│   ├── improve-workflow.md     # /improve workflow
+│   └── jira-integration.md     # Jira integration guide
 └── assets/
     ├── commands/               # Slash command files
     │   ├── README.md           # Commands documentation
@@ -299,7 +319,8 @@ knowledge-management-skill/
     │   ├── focus.md
     │   ├── recap.md
     │   ├── review.md
-    │   └── permission.md       # Permission management
+    │   ├── permission.md       # Permission management
+    │   └── jira.md             # Jira commands
     └── agents/                 # Subagent definitions
         ├── code-reviewer.md
         ├── code-simplifier.md
@@ -308,6 +329,41 @@ knowledge-management-skill/
         ├── session-analyzer.md
         └── build-validator.md
 ```
+
+## Issue Tracker Integration
+
+`/focus` รองรับทั้ง GitHub Issues และ Jira:
+
+### Supported Trackers
+
+| Tracker | Setup | Usage |
+|---------|-------|-------|
+| GitHub Issues | ไม่ต้องตั้งค่า (ใช้ gh CLI) | Default option |
+| Jira | `/jira init` ครั้งแรก | เลือกเมื่อรัน `/focus` |
+
+### `/focus` Workflow
+
+```
+/focus [task description]
+     │
+     ├── ถ้ามี Jira config ──→ เลือก: GitHub / Jira (new) / Jira (existing)
+     │
+     └── ถ้าไม่มี Jira ──→ ใช้ GitHub Issues (default)
+```
+
+### Jira Setup
+
+```bash
+# 1. สร้าง API Token ที่ https://id.atlassian.com/manage-profile/security/api-tokens
+
+# 2. ตั้งค่า credentials
+/jira init
+
+# 3. ทดสอบ connection
+/jira test
+```
+
+> See [references/jira-integration.md](references/jira-integration.md) for full Jira documentation.
 
 ## GitHub Integration
 
