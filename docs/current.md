@@ -1,5 +1,4 @@
-STATE: working
+STATE: completed
 TASK: Update documentation after Jira integration
-SINCE: 2026-01-10 09:35
+SINCE: 2026-01-10 11:17
 ISSUE: #14
-BRANCH: docs/14-update-docs
