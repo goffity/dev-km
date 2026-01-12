@@ -117,19 +117,25 @@ COMMIT_HASH=$(git rev-parse --short HEAD)
 
 # 3. Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
 # IMPORTANT: ใส่ commit hash เพื่อให้ reviewer trace ได้
-# NOTE: ใช้ heredoc (ไม่ quote) เพื่อให้ COMMIT_HASH expand ได้
-#       สำหรับ user content ที่มี special chars ให้ escape ก่อน
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
-  -f body="$(cat <<EOF
-Fixed in ${COMMIT_HASH}!
-
-- [description of what was changed]
-- [code snippet if relevant]
-EOF
-)"
+  -f body="Fixed in ${COMMIT_HASH}! [description of what was changed]"
 ```
 
-**หมายเหตุ:** ถ้าแก้หลาย comments ใน commit เดียว ทุก reply จะใช้ hash เดียวกัน
+**หมายเหตุ:**
+- ถ้าแก้หลาย comments ใน commit เดียว ทุก reply จะใช้ hash เดียวกัน
+- สำหรับ reply ที่มี user content หรือ special characters ใช้ `-F` flag กับ temp file แทน:
+
+```bash
+# สำหรับ content ที่มี special chars (เช่น quotes, backticks)
+REPLY_BODY="Fixed in ${COMMIT_HASH}!
+
+$(echo "$USER_DESCRIPTION" | sed 's/[`$"\\]/\\&/g')"
+
+echo "$REPLY_BODY" > /tmp/reply.txt
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+  -F body=@/tmp/reply.txt
+rm /tmp/reply.txt
+```
 
 #### 6.2 Comment ที่ไม่ต้องแก้ไข
 
