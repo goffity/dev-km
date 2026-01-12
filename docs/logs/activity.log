@@ -13,3 +13,4 @@
 2026-01-10 09:26 | completed | Add Jira integration for issue management (#10)
 2026-01-10 09:34 | working | Update documentation after Jira integration (#14)
 2026-01-11 15:51 | completed | Update documentation after Jira integration (#14)
+2026-01-12 10:09 | working | fix: pr-review skill should include commit hash in replies (#17)
