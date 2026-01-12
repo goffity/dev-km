@@ -117,15 +117,11 @@ COMMIT_HASH=$(git rev-parse --short HEAD)
 
 # 3. Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
 # IMPORTANT: ใส่ commit hash เพื่อให้ reviewer trace ได้
-# IMPORTANT: ใช้ <<'EOF' (quoted) เพื่อป้องกัน shell injection
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
-  -f body="$(cat <<'EOF'
-Fixed in COMMIT_HASH_PLACEHOLDER!
+  -f body="Fixed in ${COMMIT_HASH}!
 
 - [description of what was changed]
-- [code snippet if relevant]
-EOF
-)" | sed "s/COMMIT_HASH_PLACEHOLDER/$COMMIT_HASH/"
+- [code snippet if relevant]"
 ```
 
 **หมายเหตุ:** ถ้าแก้หลาย comments ใน commit เดียว ทุก reply จะใช้ hash เดียวกัน
@@ -323,22 +319,24 @@ tags: [relevant-tags]
 - Issue: [url if any]
 ```
 
-### Step 9: Commit and Push Changes
+### Step 9: Push Changes
 
 ```bash
-# Stage changes
+# Stage any remaining changes (learning docs, etc.)
 git add -A
 
-# Commit with descriptive message
-git commit -m "fix: address PR review feedback
-
-- [list of fixes]
+# Commit remaining changes if any
+if ! git diff --cached --quiet; then
+  git commit -m "docs: add learning from PR review
 
 Responds to review by @[reviewer]"
+fi
 
-# Push to update PR
+# Push all commits to update PR
 git push
 ```
+
+**หมายเหตุ:** Code fixes ถูก commit ไปแล้วใน Step 6.1 พร้อม hash ที่ใช้ใน reply
 
 ### Step 10: Final Summary
 
@@ -442,8 +440,8 @@ Found 1 open PR with reviews:
 ### Learning Document Created
 `docs/learnings/2026-01/08/14.30_context-timeout-best-practice.md`
 
-### Changes Committed and Pushed
-Commit: `fix: address PR review feedback`
+### Pushed to Remote
+All commits pushed successfully.
 
 ### Issue Updated
 Added progress comment to Issue #38
