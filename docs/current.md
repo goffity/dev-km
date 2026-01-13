@@ -1,5 +1,5 @@
-STATE: working
-TASK: fix: /pr skill uses quoted heredoc preventing date substitution
-SINCE: 2026-01-14 02:59
+STATE: completed
+TASK: Session: #20 base branch fix, #24 investigation, auto-release workflow
+SINCE: 2026-01-14 03:24
 ISSUE: #24
-BRANCH: fix/24-heredoc-date-substitution
+BRANCH: main
