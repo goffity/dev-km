@@ -309,9 +309,10 @@ EOF
 git push -u origin "$DOCS_BRANCH"
 
 # 9. Detect base branch (prefer develop, fallback to default)
-BASE_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d: -f2 | xargs)
 if git branch -r | grep -q "origin/develop"; then
   BASE_BRANCH="develop"
+else
+  BASE_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d: -f2 | xargs)
 fi
 echo "Base branch: $BASE_BRANCH"
 
