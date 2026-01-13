@@ -16,3 +16,4 @@
 2026-01-12 10:09 | working | fix: pr-review skill should include commit hash in replies (#17)
 2026-01-12 11:44 | completed | fix: pr-review skill should include commit hash in replies (#17)
 2026-01-14 02:29 | completed | fix: gh pr create should specify --base branch (#20)
+2026-01-14 02:59 | working | fix: /pr skill uses quoted heredoc preventing date substitution (#24)
