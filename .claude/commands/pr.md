@@ -342,7 +342,15 @@ elif echo "$TASK" | grep -qi "doc"; then
   TYPE="docs"
 fi
 
+# Detect base branch (prefer develop, fallback to default)
+BASE_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d: -f2 | xargs)
+if git branch -r | grep -q "origin/develop"; then
+  BASE_BRANCH="develop"
+fi
+echo "Base branch: $BASE_BRANCH"
+
 gh pr create \
+  --base "$BASE_BRANCH" \
   --title "$TYPE: $TASK" \
   --body "$(cat <<EOF
 ## Summary
