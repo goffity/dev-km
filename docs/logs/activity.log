@@ -15,3 +15,4 @@
 2026-01-11 15:51 | completed | Update documentation after Jira integration (#14)
 2026-01-12 10:09 | working | fix: pr-review skill should include commit hash in replies (#17)
 2026-01-12 11:44 | completed | fix: pr-review skill should include commit hash in replies (#17)
+2026-01-14 02:29 | completed | fix: gh pr create should specify --base branch (#20)
