@@ -308,8 +308,17 @@ EOF
 # 8. Push branch ใหม่
 git push -u origin "$DOCS_BRANCH"
 
-# 9. สร้าง PR ใหม่สำหรับ docs
+# 9. Detect base branch (prefer develop, fallback to default)
+if git branch -r | grep -q "origin/develop"; then
+  BASE_BRANCH="develop"
+else
+  BASE_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d: -f2 | xargs)
+fi
+echo "Base branch: $BASE_BRANCH"
+
+# 10. สร้าง PR ใหม่สำหรับ docs
 gh pr create \
+  --base "$BASE_BRANCH" \
   --title "docs: retrospective for #$ISSUE" \
   --body "$(cat <<'EOF'
 ## Summary
