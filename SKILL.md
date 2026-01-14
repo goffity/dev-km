@@ -17,6 +17,7 @@ description: 4-layer knowledge capture system for development sessions. Use when
 | `/improve` | 4 | Implementation | Work on pending items |
 | `/commit` | - | Git commits | Atomic commits via TDG |
 | `/pr-review` | - | Learning doc + PR updates | Handle PR review feedback |
+| `/pr-poll` | - | Notification daemon | Auto PR review notifications |
 | `/cleanup` | - | Archive + cleanup | Retention policy management |
 
 ## Flow
@@ -172,6 +173,36 @@ grep -r "mongodb" docs/
 # Recent learnings
 find docs/learnings -name "*.md" -mtime -7
 ```
+
+---
+
+## Command: /pr-poll
+
+**Automatic PR review notifications** - Polling daemon ตรวจสอบ PR reviews
+
+**What it does**:
+- Poll GitHub for user's open PRs
+- Detect new reviews, comments, and review decisions
+- Send macOS notifications with review details
+- Suggest running `/pr-review` to respond
+
+**Usage**:
+```bash
+/pr-poll              # Show daemon status
+/pr-poll start        # Start polling daemon
+/pr-poll stop         # Stop daemon
+/pr-poll check        # Check once without daemon
+```
+
+**Notification sounds**:
+- APPROVED → Glass
+- CHANGES_REQUESTED → Basso
+- COMMENTED → Ping
+
+**Files**:
+- `~/.pr-review-poll.pid` - Daemon PID
+- `~/.pr-review-poll.log` - Daemon logs
+- `~/.pr-review-state.json` - PR state tracking
 
 ---
 
