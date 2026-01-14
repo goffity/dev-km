@@ -2,6 +2,11 @@
 
 ระบบจัดการความรู้ 4 layers สำหรับ Claude Code CLI - inspired by [Claude-Mem](https://claude-mem.ai/) แต่เก็บไว้ใน Git repository
 
+[![GitHub release](https://img.shields.io/github/v/release/goffity/claude-km-skill)](https://github.com/goffity/claude-km-skill/releases)
+[![GitHub issues](https://img.shields.io/github/issues/goffity/claude-km-skill)](https://github.com/goffity/claude-km-skill/issues)
+
+> **Roadmap**: ดู [ROADMAP.md](ROADMAP.md) สำหรับแผนพัฒนา
+
 ## Features
 
 - 🚀 **4-Layer System**: /mem → /distill → /td → /improve
@@ -15,6 +20,7 @@
 - 🎫 **Jira Integration**: สร้าง/จัดการ Jira issues (Atlassian Cloud)
 - ✅ **Code Review**: /review ก่อน push
 - 🔔 **Notification Hooks**: แจ้งเตือนเมื่อ Claude ต้องการ input (รองรับ Multi-Tab Workflow)
+- 🤝 **Multi-Agent Compatible**: รองรับการใช้งานร่วมกับ [multi-agent-auto-skill](https://github.com/goffity/multi-agent-auto-skill)
 
 ## Quick Start
 
@@ -292,8 +298,9 @@ grep -l "type: decision" docs/retrospective/**/*.md
 ## Skill Structure
 
 ```
-knowledge-management-skill/
+claude-km-skill/
 ├── SKILL.md                    # Main skill definition
+├── ROADMAP.md                  # Project roadmap & timeline
 ├── hooks.json                  # Hook configurations (Notification, Stop)
 ├── scripts/
 │   ├── init.sh                 # Project setup script
@@ -308,9 +315,11 @@ knowledge-management-skill/
 │   ├── td-template.md          # Full /td template
 │   ├── improve-workflow.md     # /improve workflow
 │   └── jira-integration.md     # Jira integration guide
+├── .claude/
+│   ├── commands/               # Slash command files (installed location)
+│   └── agents/                 # Subagent definitions (installed location)
 └── assets/
-    ├── commands/               # Slash command files
-    │   ├── README.md           # Commands documentation
+    ├── commands/               # Slash command source files
     │   ├── mem.md
     │   ├── distill.md
     │   ├── td.md
@@ -319,6 +328,8 @@ knowledge-management-skill/
     │   ├── focus.md
     │   ├── recap.md
     │   ├── review.md
+    │   ├── pr.md               # Create PR with tests & review
+    │   ├── pr-review.md        # Handle PR review feedback
     │   ├── permission.md       # Permission management
     │   └── jira.md             # Jira commands
     └── agents/                 # Subagent definitions
@@ -659,8 +670,15 @@ Agents ถูกติดตั้งที่ `.claude/agents/` ใน project:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+See [ROADMAP.md](ROADMAP.md) for planned features and current progress.
+
+## Related Projects
+
+- [multi-agent-auto-skill](https://github.com/goffity/multi-agent-auto-skill) - Multi-agent orchestration ที่ใช้ร่วมกับ skill นี้
+
 ## Acknowledgments
 
 - Inspired by [Claude-Mem](https://claude-mem.ai/)
 - Inspired by [weyermann-malt-productpage](https://github.com/nazt/weyermann-malt-productpage)
 - Built for [Claude Code](https://claude.ai/code)
+- Multi-Tab workflow inspired by [Boris Cherny](https://twitter.com/bcherny)
