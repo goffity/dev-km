@@ -73,6 +73,8 @@ Dec 2025                    Jan 2026
 | [#37](https://github.com/goffity/claude-km-skill/issues/37) | Add retention policy for auto-captured files | Open |
 | [#38](https://github.com/goffity/claude-km-skill/issues/38) | Add session consolidation for auto-captured files | Open |
 | [#40](https://github.com/goffity/claude-km-skill/issues/40) | Improve notification to show terminal/tab identifier | Open |
+| [#48](https://github.com/goffity/claude-km-skill/issues/48) | Add automatic PR review notification with polling daemon | Open |
+| [#49](https://github.com/goffity/claude-km-skill/issues/49) | Auto-assign issue when starting work | Open |
 
 **Key Deliverables:**
 - Pattern Library (`patterns/`) - Reusable code patterns with context
@@ -82,6 +84,8 @@ Dec 2025                    Jan 2026
 - Retention Policy - Auto-cleanup old auto-captured files
 - Session Consolidation - Merge related sessions for multi-agent setups
 - Notification Improvement - Better terminal/tab identification (multi-terminal support)
+- PR Review Notification - Automatic polling daemon to notify when PRs are reviewed
+- Auto-Assign Issues - Automatically assign user when starting work on an issue
 
 ---
 
@@ -113,7 +117,7 @@ Have an idea? [Open an issue](https://github.com/goffity/claude-km-skill/issues/
 | Milestone | Status | Progress |
 |-----------|--------|----------|
 | v1.1 - Core Fixes & Jira Integration | Done | 12/12 (100%) |
-| v1.2 - Knowledge System Expansion | In Progress | 0/9 (0%) |
+| v1.2 - Knowledge System Expansion | In Progress | 0/11 (0%) |
 | v1.3 - Reporting & Examples | Planned | 0/2 (0%) |
 
-**Overall:** 12/23 issues completed (52%)
+**Overall:** 12/25 issues completed (48%)
