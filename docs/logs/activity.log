@@ -18,3 +18,4 @@
 2026-01-14 02:29 | completed | fix: gh pr create should specify --base branch (#20)
 2026-01-14 02:59 | working | fix: /pr skill uses quoted heredoc preventing date substitution (#24)
 2026-01-14 03:24 | completed | Session: #20 fix, #24 investigation, auto-release workflow
+2026-01-14 22:54 | completed | Roadmap & docs update, discussions #36 #39
