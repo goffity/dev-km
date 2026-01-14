@@ -41,8 +41,8 @@ query {
 }' --jq '.data.repository.discussion.id')
 
 # 2. Add Comment
-# Escape content for JSON
-BODY=$(cat content.md | jq -Rs .)
+# Escape content for JSON (avoid useless use of cat)
+BODY=$(jq -Rs . < content.md)
 
 gh api graphql -f query="
 mutation {

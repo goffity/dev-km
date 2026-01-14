@@ -74,7 +74,7 @@ rm /tmp/reply.txt
 COMMIT_HASH=$(git rev-parse --short HEAD)
 ISSUE_NUM=42
 
-# Outer heredoc quoted, inner uses variable
+# Unquoted heredoc - allows variable expansion of known-safe values
 cat <<EOF
 Fixed in ${COMMIT_HASH}!
 
@@ -82,8 +82,13 @@ Related: #${ISSUE_NUM}
 EOF
 ```
 
-**Why this works:**
-- `<<'EOF'` treats content as literal string
+**Why unquoted works here:**
+- Variables are from controlled sources (git, hardcoded)
+- No user input in the template
+- Expansion is intentional and safe
+
+**Why quoted `<<'EOF'` works for security:**
+- Treats content as literal string
 - No shell interpretation of special characters
 - Prevents accidental code execution
 - Safe for untrusted user input
