@@ -78,6 +78,32 @@ description: Extract patterns from learnings into knowledge base
 
 ---
 
+## Decision Rationale (Optional)
+
+> ใช้เมื่อ knowledge นี้เกี่ยวข้องกับการตัดสินใจสำคัญ
+
+### Decision
+
+[สรุปการตัดสินใจ]
+
+### Alternatives Considered
+
+| Option | Pros | Cons |
+|--------|------|------|
+| Option A | ... | ... |
+| **Chosen** ✓ | ... | ... |
+
+### Why This Choice?
+
+- เหตุผล 1
+- เหตุผล 2
+
+### Trade-offs Accepted
+
+- ยอมรับ X เพื่อได้ Y
+
+---
+
 ## Related
 
 - Learnings: source files

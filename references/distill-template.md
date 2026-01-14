@@ -63,6 +63,35 @@ docs/knowledge-base/[topic-name].md
 
 ---
 
+## Decision Rationale (Optional)
+
+> ใช้เมื่อ knowledge นี้เกี่ยวข้องกับการตัดสินใจสำคัญ เช่น architecture decisions, technology choices
+
+### Decision
+
+[สรุปการตัดสินใจที่ทำ]
+
+### Alternatives Considered
+
+| Option | Pros | Cons |
+|--------|------|------|
+| Option A | ข้อดี | ข้อเสีย |
+| Option B | ข้อดี | ข้อเสีย |
+| **Chosen** ✓ | ข้อดีที่ชนะ | ข้อเสียที่ยอมรับได้ |
+
+### Why This Choice?
+
+- เหตุผลหลักที่เลือกทางนี้
+- ข้อได้เปรียบเทียบกับทางเลือกอื่น
+- Constraints ที่มีผลต่อการตัดสินใจ
+
+### Trade-offs Accepted
+
+- ยอมรับ [ข้อเสีย X] เพื่อได้ [ข้อดี Y]
+- [ข้อจำกัด] ที่ต้องอยู่ด้วย
+
+---
+
 ## Related
 
 - Learnings: `docs/learnings/...` (source files)
