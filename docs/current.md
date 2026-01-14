@@ -1,4 +1,5 @@
-STATE: completed
-TASK: Add Decision Rationale section to /distill template
-SINCE: 2026-01-15 00:09
-ISSUE: #28
+STATE: working
+TASK: Add retention policy for auto-captured files
+SINCE: 2026-01-15 00:15
+ISSUE: #37
+BRANCH: feat/37-retention-policy

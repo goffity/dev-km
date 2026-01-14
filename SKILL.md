@@ -17,6 +17,7 @@ description: 4-layer knowledge capture system for development sessions. Use when
 | `/improve` | 4 | Implementation | Work on pending items |
 | `/commit` | - | Git commits | Atomic commits via TDG |
 | `/pr-review` | - | Learning doc + PR updates | Handle PR review feedback |
+| `/cleanup` | - | Archive + cleanup | Retention policy management |
 
 ## Flow
 
@@ -171,6 +172,30 @@ grep -r "mongodb" docs/
 # Recent learnings
 find docs/learnings -name "*.md" -mtime -7
 ```
+
+---
+
+## Command: /cleanup
+
+**Retention policy management** - จัดการไฟล์เก่าด้วย retention policy
+
+**What it does**:
+- Delete old auto-captured files (configurable retention period)
+- Archive old files before deletion (optional)
+- Dry-run mode to preview changes
+- Clean draft learnings that haven't been distilled
+
+**Usage**:
+```bash
+/cleanup                    # Preview (30 days default)
+/cleanup 7                  # Preview with 7 days retention
+/cleanup 14 --archive       # Archive & delete files older than 14 days
+/cleanup --all              # Clean all targets
+```
+
+**Protected directories** (never auto-deleted):
+- `docs/retrospective/` - Permanent records
+- `docs/knowledge-base/` - Distilled knowledge
 
 ---
 

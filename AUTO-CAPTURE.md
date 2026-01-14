@@ -246,6 +246,60 @@ Edit ใน scripts ถ้าต้องการเปลี่ยน
 
 ---
 
+## Retention Policy & Cleanup
+
+Auto-capture สร้างไฟล์จำนวนมากตามเวลา ใช้ `/cleanup` เพื่อจัดการ
+
+### Quick Start
+
+```bash
+/cleanup                    # Preview what would be deleted (30 days)
+/cleanup 14 --archive       # Archive & delete files older than 14 days
+/cleanup --all --execute    # Execute cleanup on all targets
+```
+
+### What Gets Cleaned
+
+| Target | Policy |
+|--------|--------|
+| `docs/auto-captured/` | Delete all files older than retention period |
+| `docs/learnings/` | Delete only `status: draft` files |
+| `docs/retrospective/` | Never auto-deleted |
+| `docs/knowledge-base/` | Never auto-deleted |
+
+### Archiving
+
+Enable `--archive` to save files before deletion:
+
+```bash
+/cleanup 30 --archive --execute
+```
+
+Archives stored in `docs/archives/` as `.tar.gz` files.
+
+### Scheduling (Recommended)
+
+Add cron job for automatic weekly cleanup:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add (runs every Sunday at midnight)
+0 0 * * 0 cd /path/to/project && ./scripts/cleanup.sh --days 30 --archive --all
+```
+
+### Storage Estimates
+
+| Multi-agent Sessions | Daily Files | Monthly | Yearly |
+|---------------------|-------------|---------|--------|
+| Light (1-2 agents) | ~5-10 | ~150-300 | ~1,800-3,600 |
+| Heavy (4+ agents) | ~50-100 | ~1,500-3,000 | ~18,000-36,000 |
+
+**Recommendation**: Use 14-30 days retention with archiving for heavy usage.
+
+---
+
 ## Troubleshooting
 
 ### Hook not triggering
