@@ -155,6 +155,27 @@ EOF
 
 เก็บ issue number ที่ได้ (เช่น `#123`) ไว้ใช้ใน Step 6
 
+### Step 5.5: Auto-assign Issue (GitHub)
+
+**อัตโนมัติ assign user ให้กับ issue:**
+
+```bash
+# Get issue number from creation output
+ISSUE_NUMBER=[issue-number-from-step-5]
+
+# Auto-assign to current user (silently skip on error)
+if gh issue edit "$ISSUE_NUMBER" --add-assignee @me 2>/dev/null; then
+    echo "✓ Assigned issue #$ISSUE_NUMBER to you"
+else
+    echo "→ Auto-assign skipped (already assigned or no permission)"
+fi
+```
+
+**Edge Cases Handled:**
+- Issue already has assignee → adds as additional assignee
+- User not authenticated → skips silently
+- Permission denied → skips silently
+
 **ไปที่ Step 6: Create Feature Branch**
 
 ---

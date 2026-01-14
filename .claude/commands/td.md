@@ -96,6 +96,13 @@ ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
 echo "Issue: #$ISSUE"
 ```
 
+**Auto-assign issue (ensure user is assigned):**
+
+```bash
+# Auto-assign to current user if not already assigned (silently skip on error)
+gh issue edit "$ISSUE" --add-assignee @me 2>/dev/null || true
+```
+
 **เพิ่ม comment ใน issue:**
 
 ```bash

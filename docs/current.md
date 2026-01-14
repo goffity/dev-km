@@ -1,4 +1,5 @@
-STATE: completed
-TASK: Add automatic PR review notification with polling daemon
-SINCE: 2026-01-15 00:46
-ISSUE: #48
+STATE: working
+TASK: Auto-assign issue when starting work
+SINCE: 2026-01-15 00:49
+ISSUE: #49
+BRANCH: feat/49-auto-assign-issue

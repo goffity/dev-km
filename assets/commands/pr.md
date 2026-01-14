@@ -403,6 +403,33 @@ EOF
 )"
 ```
 
+### Step 5.5: Start PR Review Polling (Auto)
+
+**Auto-start polling daemon เพื่อรับ notification เมื่อมี review:**
+
+```bash
+# Get script directory (relative to skill location)
+SKILL_DIR="${HOME}/.claude/skills/claude-km-skill"
+
+# Check if daemon already running
+PID_FILE="${HOME}/.pr-review-poll.pid"
+if [[ -f "$PID_FILE" ]] && ps -p "$(cat "$PID_FILE")" > /dev/null 2>&1; then
+    echo "✓ PR polling daemon already running"
+else
+    # Start polling daemon
+    if [[ -x "${SKILL_DIR}/scripts/pr-review-poll-start.sh" ]]; then
+        "${SKILL_DIR}/scripts/pr-review-poll-start.sh" --interval 300 2>/dev/null || true
+        echo "✓ Started PR review polling (5 min interval)"
+        echo "  You'll get notifications when reviews come in"
+    fi
+fi
+```
+
+**Note:**
+- Polling daemon จะแจ้งเตือนเมื่อมี review ใหม่
+- ใช้ `/pr-poll stop` เพื่อหยุด daemon
+- ใช้ `/pr-poll status` เพื่อดูสถานะ
+
 ### Step 6: Confirm
 
 ```markdown
@@ -416,9 +443,19 @@ EOF
 | Build | ✅ Passed |
 | Code Review | ✅ Passed |
 | PR Created | ✅ Done |
+| Review Polling | ✅ Active |
 
 **Issue:** #[issue-number]
 **PR:** [pr-url]
+
+### Auto Notifications
+
+🔔 PR review polling is now active. You'll receive notifications when:
+- PR is **approved** (Glass sound)
+- **Changes requested** (Basso sound)
+- Reviewer **comments** (Ping sound)
+
+Use `/pr-poll stop` to disable notifications.
 
 ### Important Reminders
 
@@ -427,7 +464,7 @@ EOF
 - ห้ามปิด issue เอง - จะปิดอัตโนมัติเมื่อ PR ถูก merge
 
 ### Next Steps
-1. รอ reviewer approve PR
+1. รอ reviewer approve PR (จะได้รับ notification)
 2. แก้ไขตาม feedback (ถ้ามี) - ใช้ `/pr-review`
 3. ใช้ `/td` เพื่อสร้าง retrospective
 4. ใช้ `/focus` เพื่อเริ่มงานใหม่
