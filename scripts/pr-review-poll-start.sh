@@ -3,9 +3,11 @@
 #
 # Usage: ./pr-review-poll-start.sh [options]
 # Options:
-#   --interval N     Polling interval in seconds (default: 300)
+#   --interval N       Polling interval in seconds (default: 300)
 #   --repo OWNER/REPO  Specific repo to monitor
-#   -h, --help       Show this help message
+#   --auto-respond     Auto-spawn Claude CLI to handle reviews
+#   --working-dir DIR  Working directory for Claude (required with --auto-respond)
+#   -h, --help         Show this help message
 
 set -euo pipefail
 
@@ -27,13 +29,22 @@ Start PR Review Polling Daemon
 Usage: ./pr-review-poll-start.sh [options]
 
 Options:
-  --interval N       Polling interval in seconds (default: 300 = 5 minutes)
-  --repo OWNER/REPO  Specific repo to monitor
-  -h, --help         Show this help message
+  --interval N         Polling interval in seconds (default: 300 = 5 minutes)
+  --repo OWNER/REPO    Specific repo to monitor
+  --auto-respond       Auto-spawn Claude CLI to handle reviews
+  --working-dir DIR    Working directory for Claude (required with --auto-respond)
+  -h, --help           Show this help message
 
 Files:
   PID file: $PID_FILE
   Log file: $LOG_FILE
+
+Examples:
+  # Basic polling with notifications only
+  ./pr-review-poll-start.sh --interval 60
+
+  # Auto-respond mode - Claude handles reviews automatically
+  ./pr-review-poll-start.sh --auto-respond --working-dir /path/to/repo
 
 EOF
 }

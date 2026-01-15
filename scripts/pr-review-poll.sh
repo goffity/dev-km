@@ -15,6 +15,8 @@ set -euo pipefail
 POLL_INTERVAL=300  # 5 minutes
 RUN_ONCE=false
 REPO=""
+AUTO_RESPOND=false
+WORKING_DIR=""
 STATE_FILE="${HOME}/.pr-review-state.json"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -50,6 +52,8 @@ Options:
   --interval N       Polling interval in seconds (default: 300 = 5 minutes)
   --once             Run once and exit (useful for testing)
   --repo OWNER/REPO  Specific repo to monitor (default: current directory's repo)
+  --auto-respond     Automatically spawn Claude CLI to handle reviews
+  --working-dir DIR  Working directory for Claude CLI (required with --auto-respond)
   -h, --help         Show this help message
 
 State:
@@ -79,6 +83,14 @@ while [[ $# -gt 0 ]]; do
             REPO="$2"
             shift 2
             ;;
+        --auto-respond)
+            AUTO_RESPOND=true
+            shift
+            ;;
+        --working-dir)
+            WORKING_DIR="$2"
+            shift 2
+            ;;
         -h|--help)
             show_help
             exit 0
@@ -90,6 +102,22 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Validate auto-respond requirements
+if [[ "$AUTO_RESPOND" == "true" ]]; then
+    if [[ -z "$WORKING_DIR" ]]; then
+        echo -e "${RED}Error: --working-dir is required when using --auto-respond${NC}"
+        exit 1
+    fi
+    if [[ ! -d "$WORKING_DIR" ]]; then
+        echo -e "${RED}Error: Working directory does not exist: $WORKING_DIR${NC}"
+        exit 1
+    fi
+    if ! command -v claude &> /dev/null; then
+        echo -e "${RED}Error: Claude CLI not found. Please install Claude Code.${NC}"
+        exit 1
+    fi
+fi
 
 # Get repo from git if not specified
 if [[ -z "$REPO" ]]; then
@@ -104,6 +132,49 @@ fi
 if [[ ! -f "$STATE_FILE" ]]; then
     echo '{}' > "$STATE_FILE"
 fi
+
+# Spawn Claude CLI to handle PR review
+spawn_claude_pr_review() {
+    local pr_number="$1"
+    local pr_title="$2"
+    local reviewer="$3"
+    local review_state="$4"
+
+    echo -e "${GREEN}[$(date '+%H:%M:%S')]${NC} Spawning Claude CLI for PR #$pr_number..."
+
+    # Create log file for this session
+    local log_file="${HOME}/.pr-review-claude-${pr_number}-$(date '+%Y%m%d-%H%M%S').log"
+
+    # Build the prompt
+    local prompt="Review feedback received on PR #${pr_number} from @${reviewer} (${review_state}). Please run /pr-review ${pr_number} to analyze and respond to the feedback."
+
+    # Spawn Claude CLI in the working directory
+    # Using nohup to run in background, output to log file
+    (
+        cd "$WORKING_DIR"
+        echo "=== Claude PR Review Session ===" > "$log_file"
+        echo "PR: #$pr_number - $pr_title" >> "$log_file"
+        echo "Reviewer: @$reviewer" >> "$log_file"
+        echo "State: $review_state" >> "$log_file"
+        echo "Started: $(date)" >> "$log_file"
+        echo "Working Dir: $WORKING_DIR" >> "$log_file"
+        echo "================================" >> "$log_file"
+        echo "" >> "$log_file"
+
+        # Run Claude CLI with the prompt
+        # --print outputs result without interactive mode
+        # --dangerously-skip-permissions to avoid blocking on permission prompts
+        claude --print --dangerously-skip-permissions "$prompt" >> "$log_file" 2>&1
+
+        echo "" >> "$log_file"
+        echo "=== Session Complete ===" >> "$log_file"
+        echo "Ended: $(date)" >> "$log_file"
+    ) &
+
+    local claude_pid=$!
+    echo -e "${GREEN}[$(date '+%H:%M:%S')]${NC} Claude spawned (PID: $claude_pid)"
+    echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} Log file: $log_file"
+}
 
 # Send notification
 send_notification() {
@@ -159,6 +230,11 @@ send_notification() {
     fi
 
     echo -e "${GREEN}[$(date '+%H:%M:%S')]${NC} Notified: PR #$pr_number - $review_state by @$reviewer"
+
+    # Auto-respond if enabled
+    if [[ "$AUTO_RESPOND" == "true" ]]; then
+        spawn_claude_pr_review "$pr_number" "$pr_title" "$reviewer" "$review_state"
+    fi
 }
 
 # Get state for a PR
@@ -279,6 +355,12 @@ main() {
     echo -e "📦 Repository: ${GREEN}$REPO${NC}"
     echo -e "⏱️  Interval: ${GREEN}${POLL_INTERVAL}s${NC}"
     echo -e "📁 State file: ${GREEN}$STATE_FILE${NC}"
+    if [[ "$AUTO_RESPOND" == "true" ]]; then
+        echo -e "🤖 Auto-respond: ${GREEN}ENABLED${NC}"
+        echo -e "📂 Working dir: ${GREEN}$WORKING_DIR${NC}"
+    else
+        echo -e "🤖 Auto-respond: ${YELLOW}DISABLED${NC}"
+    fi
     echo ""
 
     if [[ "$RUN_ONCE" == "true" ]]; then

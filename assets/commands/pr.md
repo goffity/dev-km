@@ -403,32 +403,39 @@ EOF
 )"
 ```
 
-### Step 5.5: Start PR Review Polling (Auto)
+### Step 5.5: Start PR Review Polling with Auto-Respond
 
-**Auto-start polling daemon เพื่อรับ notification เมื่อมี review:**
+**Auto-start polling daemon พร้อม auto-respond - Claude จะจัดการ review อัตโนมัติ:**
 
 ```bash
-# Get script directory (relative to skill location)
+# Get script directory and working directory
 SKILL_DIR="${HOME}/.claude/skills/claude-km-skill"
+WORKING_DIR="$(pwd)"
 
 # Check if daemon already running
 PID_FILE="${HOME}/.pr-review-poll.pid"
 if [[ -f "$PID_FILE" ]] && ps -p "$(cat "$PID_FILE")" > /dev/null 2>&1; then
     echo "✓ PR polling daemon already running"
 else
-    # Start polling daemon
+    # Start polling daemon with auto-respond
     if [[ -x "${SKILL_DIR}/scripts/pr-review-poll-start.sh" ]]; then
-        "${SKILL_DIR}/scripts/pr-review-poll-start.sh" --interval 300 2>/dev/null || true
-        echo "✓ Started PR review polling (5 min interval)"
-        echo "  You'll get notifications when reviews come in"
+        "${SKILL_DIR}/scripts/pr-review-poll-start.sh" \
+            --interval 300 \
+            --auto-respond \
+            --working-dir "$WORKING_DIR" 2>/dev/null || true
+        echo "✓ Started PR review polling with auto-respond (5 min interval)"
+        echo "  Claude will automatically handle reviews when they come in"
+        echo "  Working dir: $WORKING_DIR"
     fi
 fi
 ```
 
 **Note:**
-- Polling daemon จะแจ้งเตือนเมื่อมี review ใหม่
+- Polling daemon จะตรวจสอบ PR reviews ทุก 5 นาที
+- เมื่อมี review ใหม่ Claude CLI จะถูก spawn อัตโนมัติเพื่อ run `/pr-review`
 - ใช้ `/pr-poll stop` เพื่อหยุด daemon
 - ใช้ `/pr-poll status` เพื่อดูสถานะ
+- Log ของ Claude sessions: `~/.pr-review-claude-*.log`
 
 ### Step 6: Confirm
 
@@ -448,14 +455,21 @@ fi
 **Issue:** #[issue-number]
 **PR:** [pr-url]
 
-### Auto Notifications
+### Auto-Respond Active
 
-🔔 PR review polling is now active. You'll receive notifications when:
-- PR is **approved** (Glass sound)
-- **Changes requested** (Basso sound)
-- Reviewer **comments** (Ping sound)
+🤖 PR review polling with auto-respond is now active:
+- When reviewer **approves**: Notification (Glass sound)
+- When **changes requested**: Claude spawns `/pr-review` automatically
+- When reviewer **comments**: Claude spawns `/pr-review` automatically
 
-Use `/pr-poll stop` to disable notifications.
+Claude will automatically:
+1. Analyze review feedback
+2. Fix code issues
+3. Reply to comments
+4. Push changes
+
+Use `/pr-poll stop` to disable auto-respond.
+View Claude logs: `tail -f ~/.pr-review-claude-*.log`
 
 ### Important Reminders
 
@@ -464,10 +478,11 @@ Use `/pr-poll stop` to disable notifications.
 - ห้ามปิด issue เอง - จะปิดอัตโนมัติเมื่อ PR ถูก merge
 
 ### Next Steps
-1. รอ reviewer approve PR (จะได้รับ notification)
-2. แก้ไขตาม feedback (ถ้ามี) - ใช้ `/pr-review`
-3. ใช้ `/td` เพื่อสร้าง retrospective
-4. ใช้ `/focus` เพื่อเริ่มงานใหม่
+1. รอ reviewer approve PR (Claude จะจัดการ feedback อัตโนมัติ)
+2. ตรวจสอบ Claude logs: `tail -f ~/.pr-review-claude-*.log`
+3. ใช้ `/pr-review` ด้วยตนเองหากต้องการควบคุม
+4. ใช้ `/td` เพื่อสร้าง retrospective
+5. ใช้ `/focus` เพื่อเริ่มงานใหม่
 ```
 
 ## Flow Summary

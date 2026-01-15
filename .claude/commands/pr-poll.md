@@ -10,7 +10,8 @@ description: Manage PR review polling daemon for automatic notifications
 
 ```
 /pr-poll              # Show status
-/pr-poll start        # Start daemon
+/pr-poll start        # Start daemon (notification only)
+/pr-poll auto         # Start daemon with auto-respond (Claude handles reviews)
 /pr-poll stop         # Stop daemon
 /pr-poll check        # Check once (no daemon)
 ```
@@ -23,7 +24,10 @@ description: Manage PR review polling daemon for automatic notifications
 → แสดงสถานะ daemon
 
 **ถ้า `start`:**
-→ Start daemon
+→ Start daemon (notification only)
+
+**ถ้า `auto`:**
+→ Start daemon with auto-respond (Claude handles reviews automatically)
 
 **ถ้า `stop`:**
 → Stop daemon
@@ -44,7 +48,7 @@ description: Manage PR review polling daemon for automatic notifications
 - Tracked PRs
 - Last log entries
 
-#### Start Daemon
+#### Start Daemon (Notification Only)
 
 ```bash
 ./scripts/pr-review-poll-start.sh --interval 300
@@ -62,6 +66,42 @@ Log file: ~/.pr-review-poll.log
 To view logs: tail -f ~/.pr-review-poll.log
 To stop: ./pr-review-poll-stop.sh
 ```
+
+#### Start Daemon with Auto-Respond
+
+```bash
+# Get current working directory
+WORKING_DIR=$(pwd)
+
+# Start with auto-respond enabled
+./scripts/pr-review-poll-start.sh --interval 300 --auto-respond --working-dir "$WORKING_DIR"
+```
+
+**Options:**
+- `--auto-respond` - Enable automatic Claude CLI spawning
+- `--working-dir DIR` - Working directory for Claude (required with --auto-respond)
+
+**Output:**
+```
+✓ Daemon started (PID: 12345)
+🤖 Auto-respond: ENABLED
+📂 Working dir: /path/to/repo
+
+Log file: ~/.pr-review-poll.log
+To view logs: tail -f ~/.pr-review-poll.log
+To stop: ./pr-review-poll-stop.sh
+```
+
+**How Auto-Respond Works:**
+1. Daemon detects new PR review
+2. Spawns Claude CLI with `/pr-review` prompt
+3. Claude analyzes and responds to review feedback
+4. Log file created: `~/.pr-review-claude-{pr}-{timestamp}.log`
+
+**Important Notes:**
+- Requires `claude` CLI to be installed and in PATH
+- Uses `--dangerously-skip-permissions` for non-interactive execution
+- Each Claude session runs in background with separate log file
 
 #### Stop Daemon
 
@@ -131,14 +171,20 @@ To stop: ./pr-review-poll-stop.sh
 ## Examples
 
 ```bash
-# Start daemon with 5-minute interval (default)
+# Start daemon with 5-minute interval (default, notification only)
 /pr-poll start
+
+# Start with auto-respond - Claude handles reviews automatically
+/pr-poll auto
 
 # Start with 1-minute interval for active development
 ./scripts/pr-review-poll-start.sh --interval 60
 
-# Monitor specific repo
-./scripts/pr-review-poll-start.sh --repo owner/repo
+# Auto-respond with 1-minute interval
+./scripts/pr-review-poll-start.sh --interval 60 --auto-respond --working-dir "$(pwd)"
+
+# Monitor specific repo with auto-respond
+./scripts/pr-review-poll-start.sh --repo owner/repo --auto-respond --working-dir /path/to/repo
 
 # Quick check without starting daemon
 /pr-poll check

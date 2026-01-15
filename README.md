@@ -64,9 +64,10 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 | Command | Purpose | Usage |
 |---------|---------|-------|
 | `/commit` | Atomic commits (via TDG) | `/commit` |
-| `/pr` | Test + Build + Review + Create PR | `/pr` |
+| `/pr` | Test + Build + Review + Create PR + Auto-respond | `/pr` |
 | `/review` | Manual code review | `/review` |
 | `/pr-review` | ตอบ PR feedback | `/pr-review` |
+| `/pr-poll` | จัดการ PR review polling daemon | `/pr-poll start` / `/pr-poll auto` |
 | `/permission` | จัดการ permissions - pre-allow safe commands | `/permission suggest` |
 
 ### Knowledge Capture (4-Layer)
@@ -128,6 +129,15 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
                     │  test + build       │
                     │  code review        │
                     │  create PR          │
+                    │  start auto-respond │
+                    └─────────────────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │   [Auto-Respond]    │
+                    │  poll for reviews   │
+                    │  Claude handles     │
+                    │  feedback auto      │
                     └─────────────────────┘
                                │
                                ▼
@@ -308,7 +318,11 @@ claude-km-skill/
 │   ├── ai-capture.sh           # AI-powered capture
 │   ├── claude-wrap.sh          # Claude wrapper
 │   ├── notify.sh               # macOS notification script
-│   └── jira-client.sh          # Jira API client
+│   ├── jira-client.sh          # Jira API client
+│   ├── pr-review-poll.sh       # PR review polling daemon
+│   ├── pr-review-poll-start.sh # Start daemon
+│   ├── pr-review-poll-stop.sh  # Stop daemon
+│   └── pr-review-poll-status.sh # Daemon status
 ├── references/
 │   ├── mem-template.md         # Full /mem template
 │   ├── distill-template.md     # Full /distill template
@@ -330,6 +344,7 @@ claude-km-skill/
     │   ├── review.md
     │   ├── pr.md               # Create PR with tests & review
     │   ├── pr-review.md        # Handle PR review feedback
+    │   ├── pr-poll.md          # PR review polling daemon
     │   ├── permission.md       # Permission management
     │   └── jira.md             # Jira commands
     └── agents/                 # Subagent definitions
@@ -428,6 +443,43 @@ Fixes #issue_number
 | Code Review | Subagent | No critical issues |
 
 **Note:** `/pr` จะรันทุกขั้นตอนนี้ให้อัตโนมัติพร้อม update issue ทุก step
+
+### PR Review Auto-Respond
+
+หลังจาก `/pr` สร้าง PR เสร็จ จะ auto-start polling daemon ที่จัดการ reviews อัตโนมัติ:
+
+```
+/pr สร้าง PR เสร็จ
+        ↓
+Start PR Poll Daemon (--auto-respond)
+        ↓
+[รอ reviewer...]
+        ↓
+เมื่อมี review → Daemon ตรวจจับ
+        ↓
+Spawn Claude CLI → run /pr-review อัตโนมัติ
+        ↓
+แก้ code, reply comments, push changes
+```
+
+| Event | Action |
+|-------|--------|
+| PR Approved | Notification (Glass sound) |
+| Changes Requested | Claude auto-responds |
+| Reviewer Comments | Claude auto-responds |
+
+**Commands:**
+
+```bash
+# ดูสถานะ daemon
+/pr-poll status
+
+# หยุด auto-respond
+/pr-poll stop
+
+# ดู Claude logs
+tail -f ~/.pr-review-claude-*.log
+```
 
 ### Forbidden Actions
 
