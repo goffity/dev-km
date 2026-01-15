@@ -161,10 +161,23 @@ spawn_claude_pr_review() {
         echo "================================" >> "$log_file"
         echo "" >> "$log_file"
 
+        # Find Claude CLI - check multiple locations
+        local claude_cmd=""
+        if [[ -x "${HOME}/.asdf/installs/nodejs/22.14.0/bin/claude" ]]; then
+            claude_cmd="${HOME}/.asdf/installs/nodejs/22.14.0/bin/claude"
+        elif command -v claude &> /dev/null; then
+            claude_cmd="claude"
+        else
+            echo "ERROR: Claude CLI not found" >> "$log_file"
+            exit 1
+        fi
+
+        echo "Using Claude: $claude_cmd" >> "$log_file"
+
         # Run Claude CLI with the prompt
         # --print outputs result without interactive mode
-        # --dangerously-skip-permissions to avoid blocking on permission prompts
-        claude --print --dangerously-skip-permissions "$prompt" >> "$log_file" 2>&1
+        # --permission-mode bypassPermissions to avoid blocking on permission prompts
+        "$claude_cmd" --print --permission-mode bypassPermissions "$prompt" >> "$log_file" 2>&1
 
         echo "" >> "$log_file"
         echo "=== Session Complete ===" >> "$log_file"
