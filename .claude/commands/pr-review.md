@@ -335,32 +335,61 @@ tags: [relevant-tags]
 After addressing each comment, resolve the review thread to mark it as done:
 
 ```bash
-# Get thread ID from comment ID using GraphQL
+# Get thread ID from comment ID using GraphQL (with pagination)
 get_thread_id() {
     local pr_number="$1"
     local owner="${REPO%%/*}"
     local repo="${REPO##*/}"
+    local cursor=""
+    local all_threads="[]"
 
-    gh api graphql -f query='
-        query($owner: String!, $repo: String!, $pr: Int!) {
-            repository(owner: $owner, name: $repo) {
-                pullRequest(number: $pr) {
-                    reviewThreads(first: 100) {
-                        nodes {
-                            id
-                            isResolved
-                            comments(first: 1) {
-                                nodes {
-                                    id
-                                    databaseId
+    # Paginate through all review threads
+    while true; do
+        local cursor_arg=""
+        if [[ -n "$cursor" && "$cursor" != "null" ]]; then
+            cursor_arg="-f cursor=$cursor"
+        fi
+
+        # shellcheck disable=SC2086
+        local result=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
+                repository(owner: $owner, name: $repo) {
+                    pullRequest(number: $pr) {
+                        reviewThreads(first: 100, after: $cursor) {
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                            nodes {
+                                id
+                                isResolved
+                                comments(first: 1) {
+                                    nodes {
+                                        id
+                                        databaseId
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-    ' -f owner="$owner" -f repo="$repo" -F pr="$pr_number"
+        ' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" $cursor_arg)
+
+        # Accumulate threads with null-safe handling
+        local page_threads=$(echo "$result" | jq '.data.repository.pullRequest.reviewThreads.nodes // []')
+        all_threads=$(jq -n --argjson all "$all_threads" --argjson page "$page_threads" '$all + $page')
+
+        # Check for more pages
+        local has_next=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')
+        cursor=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor')
+
+        if [[ "$has_next" != "true" || -z "$cursor" || "$cursor" == "null" ]]; then
+            break
+        fi
+    done
+
+    echo "$all_threads"
 }
 
 # Resolve a specific thread
@@ -587,39 +616,72 @@ fi
 git add -A
 git commit -m "fix: address Copilot review comments"
 
-# 2. Resolve all Copilot threads
-gh api graphql -f query='
-    query($owner: String!, $repo: String!, $pr: Int!) {
-        repository(owner: $owner, name: $repo) {
-            pullRequest(number: $pr) {
-                reviewThreads(first: 100) {
-                    nodes {
-                        id
-                        isResolved
-                        comments(first: 1) {
+# 2. Resolve all Copilot threads (with pagination for >100 threads)
+resolve_all_copilot_threads() {
+    local pr_number="$1"
+    local cursor=""
+    local owner="${REPO%%/*}"
+    local repo="${REPO##*/}"
+
+    while true; do
+        local cursor_arg=""
+        if [[ -n "$cursor" && "$cursor" != "null" ]]; then
+            cursor_arg="-f cursor=$cursor"
+        fi
+
+        # shellcheck disable=SC2086
+        local result=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
+                repository(owner: $owner, name: $repo) {
+                    pullRequest(number: $pr) {
+                        reviewThreads(first: 100, after: $cursor) {
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
                             nodes {
-                                author { login }
+                                id
+                                isResolved
+                                comments(first: 1) {
+                                    nodes {
+                                        author { login }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-    }
-' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" | jq -r '
-    .data.repository.pullRequest.reviewThreads.nodes[] |
-    select(.isResolved == false) |
-    select(.comments.nodes[0]? and .comments.nodes[0].author? and .comments.nodes[0].author.login == "copilot-pull-request-reviewer") |
-    .id
-' | while read thread_id; do
-    gh api graphql -f query='
-        mutation($threadId: ID!) {
-            resolveReviewThread(input: {threadId: $threadId}) {
-                thread { isResolved }
-            }
-        }
-    ' -f threadId="$thread_id"
-done
+        ' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" $cursor_arg)
+
+        # Resolve unresolved Copilot threads in this page
+        echo "$result" | jq -r '
+            .data.repository.pullRequest.reviewThreads.nodes[] |
+            select(.isResolved == false) |
+            select(.comments.nodes[0]?.author?.login == "copilot-pull-request-reviewer") |
+            .id
+        ' | while read -r thread_id; do
+            [[ -z "$thread_id" ]] && continue
+            gh api graphql -f query='
+                mutation($threadId: ID!) {
+                    resolveReviewThread(input: {threadId: $threadId}) {
+                        thread { isResolved }
+                    }
+                }
+            ' -f threadId="$thread_id"
+        done
+
+        # Check for more pages
+        local has_next=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')
+        cursor=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor')
+
+        if [[ "$has_next" != "true" || -z "$cursor" || "$cursor" == "null" ]]; then
+            break
+        fi
+    done
+}
+
+resolve_all_copilot_threads "$pr_number"
 
 # 3. Push to trigger new Copilot review
 git push

@@ -307,22 +307,55 @@ is_copilot_reviewer() {
 
 # Check for pending Copilot review comments
 # Returns the count of unresolved Copilot comments
+# Uses cursor-based pagination to handle PRs with >100 review threads
 check_copilot_pending_comments() {
     local pr_number="$1"
+    local total_count=0
+    local cursor=""
+    local has_next_page="true"
+    local owner="${REPO%%/*}"
+    local repo="${REPO##*/}"
 
-    # Get review threads with pending state from Copilot
-    local pending_count
-    pending_count=$(gh api graphql -f query='
-        query($owner: String!, $repo: String!, $pr: Int!) {
-            repository(owner: $owner, name: $repo) {
-                pullRequest(number: $pr) {
-                    reviewThreads(first: 100) {
-                        nodes {
-                            isResolved
-                            comments(first: 1) {
-                                nodes {
-                                    author {
-                                        login
+    local result=""
+
+    # Paginate through all review threads
+    while true; do
+        # Safety checks to prevent infinite pagination loops
+        if [[ "$has_next_page" != "true" ]]; then
+            break
+        fi
+
+        # If the API reports hasNextPage=true but gives a null/empty cursor
+        # after at least one request, stop to avoid re-fetching the first page.
+        if [[ -n "$result" && ( -z "$cursor" || "$cursor" == "null" ) ]]; then
+            break
+        fi
+
+        local cursor_arg=""
+
+        # Add cursor argument if we have one (not first page)
+        if [[ -n "$cursor" && "$cursor" != "null" ]]; then
+            cursor_arg="-f cursor=$cursor"
+        fi
+
+        # Query review threads with pagination
+        # shellcheck disable=SC2086
+        result=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
+                repository(owner: $owner, name: $repo) {
+                    pullRequest(number: $pr) {
+                        reviewThreads(first: 100, after: $cursor) {
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                            nodes {
+                                isResolved
+                                comments(first: 1) {
+                                    nodes {
+                                        author {
+                                            login
+                                        }
                                     }
                                 }
                             }
@@ -330,13 +363,27 @@ check_copilot_pending_comments() {
                     }
                 }
             }
+        ' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" $cursor_arg 2>/dev/null) || {
+            # On error, return current count
+            echo "$total_count"
+            return
         }
-    ' -f owner="${REPO%%/*}" -f repo="${REPO##*/}" -F pr="$pr_number" \
-        --jq '[.data.repository.pullRequest.reviewThreads.nodes[] |
-              select(.isResolved == false) |
-              select(.comments.nodes[0]?.author?.login == "'"$COPILOT_REVIEWER"'")] | length' 2>/dev/null) || pending_count="0"
 
-    echo "$pending_count"
+        # Extract page count of unresolved Copilot comments
+        local page_count
+        page_count=$(echo "$result" | jq '[.data.repository.pullRequest.reviewThreads.nodes[] |
+              select(.isResolved == false) |
+              select(.comments.nodes[0]?.author?.login == "'"$COPILOT_REVIEWER"'")] | length' 2>/dev/null) || page_count=0
+
+        # Accumulate total
+        total_count=$((total_count + page_count))
+
+        # Get pagination info for next iteration's safety checks
+        has_next_page=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage // "false"' 2>/dev/null) || has_next_page="false"
+        cursor=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor // "null"' 2>/dev/null) || cursor="null"
+    done
+
+    echo "$total_count"
 }
 
 # Check PRs for new reviews
