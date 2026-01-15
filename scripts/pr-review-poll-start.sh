@@ -7,6 +7,8 @@
 #   --repo OWNER/REPO  Specific repo to monitor
 #   --auto-respond     Auto-spawn Claude CLI to handle reviews
 #   --working-dir DIR  Working directory for Claude (required with --auto-respond)
+#   --include-copilot  Include Copilot reviews (default: enabled)
+#   --no-copilot       Exclude Copilot reviews
 #   -h, --help         Show this help message
 
 set -euo pipefail
@@ -33,6 +35,8 @@ Options:
   --repo OWNER/REPO    Specific repo to monitor
   --auto-respond       Auto-spawn Claude CLI to handle reviews
   --working-dir DIR    Working directory for Claude (required with --auto-respond)
+  --include-copilot    Include Copilot reviews (default: enabled)
+  --no-copilot         Exclude Copilot reviews from notifications
   -h, --help           Show this help message
 
 Files:

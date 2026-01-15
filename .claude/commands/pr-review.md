@@ -330,7 +330,88 @@ tags: [relevant-tags]
 - Issue: [url if any]
 ```
 
-### Step 9: Push Changes
+### Step 9: Auto-Resolve Addressed Comments
+
+After addressing each comment, resolve the review thread to mark it as done:
+
+```bash
+# Get thread ID from comment ID using GraphQL
+get_thread_id() {
+    local pr_number="$1"
+    local owner="${REPO%%/*}"
+    local repo="${REPO##*/}"
+
+    gh api graphql -f query='
+        query($owner: String!, $repo: String!, $pr: Int!) {
+            repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                    reviewThreads(first: 100) {
+                        nodes {
+                            id
+                            isResolved
+                            comments(first: 1) {
+                                nodes {
+                                    id
+                                    databaseId
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ' -f owner="$owner" -f repo="$repo" -F pr="$pr_number"
+}
+
+# Resolve a specific thread
+resolve_thread() {
+    local thread_id="$1"
+
+    gh api graphql -f query='
+        mutation($threadId: ID!) {
+            resolveReviewThread(input: {threadId: $threadId}) {
+                thread {
+                    id
+                    isResolved
+                }
+            }
+        }
+    ' -f threadId="$thread_id"
+}
+```
+
+**When to resolve:**
+- After replying with "Fixed in [commit]" - resolve the thread
+- After answering a question satisfactorily - resolve the thread
+- After explaining why not changing - resolve the thread
+- After creating a defer issue - resolve the thread
+
+**Do NOT resolve:**
+- If reviewer needs to verify the fix
+- If there's ongoing discussion
+- If the comment is a blocking concern
+
+**Example - Resolve after addressing:**
+
+```bash
+# 1. First, reply to the comment
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+  -f body="Fixed in abc1234! Changed to use context.WithTimeout"
+
+# 2. Then resolve the thread
+# Find thread_id that contains comment_id, then:
+gh api graphql -f query='
+    mutation($threadId: ID!) {
+        resolveReviewThread(input: {threadId: $threadId}) {
+            thread { isResolved }
+        }
+    }
+' -f threadId="THREAD_ID_HERE"
+
+echo "Thread resolved"
+```
+
+### Step 10: Push Changes
 
 ```bash
 # Stage any remaining changes (learning docs, etc.)
@@ -349,7 +430,7 @@ git push
 
 **หมายเหตุ:** Code fixes ถูก commit ไปแล้วใน Step 6.1 พร้อม hash ที่ใช้ใน reply
 
-### Step 10: Final Summary
+### Step 11: Final Summary
 
 แสดงสรุปการทำงาน:
 
@@ -357,13 +438,21 @@ git push
 ## PR Review Complete
 
 ### PR: #[number] - [title]
+**Reviewer**: @[reviewer] ([reviewer_type: human/copilot])
 
 ### Actions Taken
-| Comment | Action | Status |
-|---------|--------|--------|
-| [comment 1] | Fixed/Replied | Done |
-| [comment 2] | Fixed/Replied | Done |
-| [comment 3] | Deferred → #[issue] | Done |
+| Comment | Action | Status | Thread |
+|---------|--------|--------|--------|
+| [comment 1] | Fixed | Done | Resolved |
+| [comment 2] | Replied | Done | Resolved |
+| [comment 3] | Deferred → #[issue] | Done | Resolved |
+
+### Summary Statistics
+- Total comments: [N]
+- Fixed: [N]
+- Replied: [N]
+- Deferred: [N]
+- Threads resolved: [N]/[N]
 
 ### Deferred Items (Issues Created)
 | Issue | Title | From Comment |
@@ -462,6 +551,82 @@ Added progress comment to Issue #38
 
 ---
 
+## Handling Copilot Reviews
+
+GitHub Copilot reviews are automatically triggered on PRs. They have some differences from human reviews:
+
+### Detection
+
+```bash
+# Check if reviewer is Copilot
+COPILOT_REVIEWER="copilot-pull-request-reviewer"
+
+if [[ "$reviewer" == "$COPILOT_REVIEWER" ]]; then
+    echo "This is a Copilot review"
+fi
+```
+
+### Key Differences
+
+| Aspect | Human Review | Copilot Review |
+|--------|-------------|----------------|
+| Review State | APPROVED, CHANGES_REQUESTED, COMMENTED | Usually COMMENTED |
+| Response Time | Can wait | Can be processed immediately |
+| Thread Resolution | Ask reviewer first | Can auto-resolve after fixing |
+| Learning Value | High (contextual) | Medium (pattern-based) |
+
+### Processing Copilot Comments
+
+1. **All Copilot comments can be auto-resolved** after addressing
+2. **No need to wait for re-review** - Copilot will review again on next push
+3. **Batch process** - Fix all comments, then resolve all threads
+
+```bash
+# After fixing all Copilot comments:
+# 1. Commit all fixes
+git add -A
+git commit -m "fix: address Copilot review comments"
+
+# 2. Resolve all Copilot threads
+gh api graphql -f query='
+    query($owner: String!, $repo: String!, $pr: Int!) {
+        repository(owner: $owner, name: $repo) {
+            pullRequest(number: $pr) {
+                reviewThreads(first: 100) {
+                    nodes {
+                        id
+                        isResolved
+                        comments(first: 1) {
+                            nodes {
+                                author { login }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" | jq -r '
+    .data.repository.pullRequest.reviewThreads.nodes[] |
+    select(.isResolved == false) |
+    select(.comments.nodes[0]? and .comments.nodes[0].author? and .comments.nodes[0].author.login == "copilot-pull-request-reviewer") |
+    .id
+' | while read thread_id; do
+    gh api graphql -f query='
+        mutation($threadId: ID!) {
+            resolveReviewThread(input: {threadId: $threadId}) {
+                thread { isResolved }
+            }
+        }
+    ' -f threadId="$thread_id"
+done
+
+# 3. Push to trigger new Copilot review
+git push
+```
+
+---
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -480,3 +645,4 @@ Added progress comment to Issue #38
 | `/commit` | Atomic commits |
 | `/mem` | Quick knowledge capture |
 | `/review` | Local code review before push |
+| `/pr-poll` | Start PR review polling daemon |

@@ -1,5 +1,5 @@
-STATE: completed
-TASK: Add session consolidation for auto-captured files
-SINCE: 2026-01-15 20:32
-ISSUE: #38
-BRANCH: -
+STATE: working
+TASK: Spawn Claude on Copilot review comments
+SINCE: 2026-01-15 22:36
+ISSUE: #60
+BRANCH: feat/60-copilot-auto-respond

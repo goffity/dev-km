@@ -17,8 +17,12 @@ RUN_ONCE=false
 REPO=""
 AUTO_RESPOND=false
 WORKING_DIR=""
+INCLUDE_COPILOT=true  # Include Copilot reviews by default
 STATE_FILE="${HOME}/.pr-review-state.json"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Copilot reviewer username
+COPILOT_REVIEWER="copilot-pull-request-reviewer"
 
 # Colors for output
 RED='\033[0;31m'
@@ -54,6 +58,8 @@ Options:
   --repo OWNER/REPO  Specific repo to monitor (default: current directory's repo)
   --auto-respond     Automatically spawn Claude CLI to handle reviews
   --working-dir DIR  Working directory for Claude CLI (required with --auto-respond)
+  --include-copilot  Include Copilot reviews (default: enabled)
+  --no-copilot       Exclude Copilot reviews from notifications
   -h, --help         Show this help message
 
 State:
@@ -90,6 +96,14 @@ while [[ $# -gt 0 ]]; do
         --working-dir)
             WORKING_DIR="$2"
             shift 2
+            ;;
+        --include-copilot)
+            INCLUDE_COPILOT=true
+            shift
+            ;;
+        --no-copilot)
+            INCLUDE_COPILOT=false
+            shift
             ;;
         -h|--help)
             show_help
@@ -262,13 +276,15 @@ update_pr_state() {
     local last_review_id="$2"
     local last_comment_count="$3"
     local review_decision="$4"
+    local copilot_pending="${5:-0}"
 
     local tmp_file=$(mktemp)
     jq --arg pr "$pr_number" \
        --arg rid "$last_review_id" \
        --arg cc "$last_comment_count" \
        --arg rd "$review_decision" \
-       '.[$pr] = {"last_review_id": $rid, "comment_count": $cc, "review_decision": $rd, "checked_at": now}' \
+       --arg cp "$copilot_pending" \
+       '.[$pr] = {"last_review_id": $rid, "comment_count": $cc, "review_decision": $rd, "copilot_pending": $cp, "checked_at": now}' \
        "$STATE_FILE" > "$tmp_file" && mv "$tmp_file" "$STATE_FILE"
 }
 
@@ -281,6 +297,46 @@ cleanup_state() {
         ($open | split(",")) as $open_list |
         with_entries(select(.key | IN($open_list[])))
     ' "$STATE_FILE" > "$tmp_file" && mv "$tmp_file" "$STATE_FILE"
+}
+
+# Check if reviewer is Copilot
+is_copilot_reviewer() {
+    local reviewer="$1"
+    [[ "$reviewer" == "$COPILOT_REVIEWER" ]]
+}
+
+# Check for pending Copilot review comments
+# Returns the count of unresolved Copilot comments
+check_copilot_pending_comments() {
+    local pr_number="$1"
+
+    # Get review threads with pending state from Copilot
+    local pending_count
+    pending_count=$(gh api graphql -f query='
+        query($owner: String!, $repo: String!, $pr: Int!) {
+            repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                    reviewThreads(first: 100) {
+                        nodes {
+                            isResolved
+                            comments(first: 1) {
+                                nodes {
+                                    author {
+                                        login
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ' -f owner="${REPO%%/*}" -f repo="${REPO##*/}" -F pr="$pr_number" \
+        --jq '[.data.repository.pullRequest.reviewThreads.nodes[] |
+              select(.isResolved == false) |
+              select(.comments.nodes[0]?.author?.login == "'"$COPILOT_REVIEWER"'")] | length' 2>/dev/null) || pending_count="0"
+
+    echo "$pending_count"
 }
 
 # Check PRs for new reviews
@@ -329,14 +385,59 @@ check_prs() {
         latest_reviewer=$(echo "$reviews" | jq -r '.user // ""')
         latest_state=$(echo "$reviews" | jq -r '.state // ""')
 
+        # Check if this is a Copilot review
+        local is_copilot=false
+        if is_copilot_reviewer "$latest_reviewer"; then
+            is_copilot=true
+            if [[ "$INCLUDE_COPILOT" != "true" ]]; then
+                echo -e "${YELLOW}[$(date '+%H:%M:%S')]${NC} Skipping Copilot review for PR #$pr_number (--no-copilot)"
+                # Update state to avoid repeated processing of the same Copilot review
+                if [[ ! -f "$STATE_FILE" ]]; then
+                    echo '{}' >"$STATE_FILE"
+                fi
+                local tmp_state_file
+                tmp_state_file="$(mktemp)"
+                jq --arg pr "$pr_number" \
+                   --arg rid "$latest_review_id" \
+                   --arg cp "0" \
+                   '
+                   .[$pr] = (.[$pr] // {}) |
+                   .[$pr].last_review_id = $rid |
+                   .[$pr].copilot_pending = $cp
+                   ' "$STATE_FILE" >"$tmp_state_file"
+                mv "$tmp_state_file" "$STATE_FILE"
+                continue
+            fi
+        fi
+
         # Get current state
         local current_state
         current_state=$(get_pr_state "$pr_number")
-        local stored_review_id
+        local stored_review_id stored_copilot_pending
         stored_review_id=$(echo "$current_state" | jq -r '.last_review_id // ""')
+        stored_copilot_pending=$(echo "$current_state" | jq -r '.copilot_pending // "0"')
+
+        # Check Copilot pending comments (only when Copilot review is detected)
+        local copilot_pending="0"
+        if [[ "$INCLUDE_COPILOT" == "true" && "$is_copilot" == "true" ]]; then
+            copilot_pending=$(check_copilot_pending_comments "$pr_number")
+        fi
+
+        # Determine if we should notify
+        local should_notify=false
 
         # Check if there's a new review
         if [[ -n "$latest_review_id" && "$latest_review_id" != "$stored_review_id" ]]; then
+            should_notify=true
+        fi
+
+        # Check if there are new Copilot pending comments (even if review ID is same)
+        if [[ "$is_copilot" == "true" && "$copilot_pending" -gt 0 && "$copilot_pending" != "$stored_copilot_pending" ]]; then
+            should_notify=true
+            echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} Copilot has $copilot_pending pending comments on PR #$pr_number"
+        fi
+
+        if [[ "$should_notify" == "true" ]]; then
             send_notification "$pr_number" "$pr_title" "$latest_reviewer" "$latest_state"
 
             # Get comment count
@@ -347,7 +448,7 @@ check_prs() {
             local review_decision
             review_decision=$(gh api "repos/$REPO/pulls/$pr_number" --jq '.reviewDecision // ""' 2>/dev/null) || review_decision=""
 
-            update_pr_state "$pr_number" "$latest_review_id" "$comment_count" "$review_decision"
+            update_pr_state "$pr_number" "$latest_review_id" "$comment_count" "$review_decision" "$copilot_pending"
         fi
     done < <(echo "$prs" | jq -c '.')
 
@@ -373,6 +474,11 @@ main() {
         echo -e "📂 Working dir: ${GREEN}$WORKING_DIR${NC}"
     else
         echo -e "🤖 Auto-respond: ${YELLOW}DISABLED${NC}"
+    fi
+    if [[ "$INCLUDE_COPILOT" == "true" ]]; then
+        echo -e "🤖 Copilot reviews: ${GREEN}INCLUDED${NC}"
+    else
+        echo -e "🤖 Copilot reviews: ${YELLOW}EXCLUDED${NC}"
     fi
     echo ""
 
