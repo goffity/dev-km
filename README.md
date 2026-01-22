@@ -6,6 +6,8 @@
 [![GitHub issues](https://img.shields.io/github/issues/goffity/claude-km-skill)](https://github.com/goffity/claude-km-skill/issues)
 
 > **Roadmap**: ดู [ROADMAP.md](ROADMAP.md) สำหรับแผนพัฒนา
+>
+> **Usage Guide**: ดู [USAGE.md](USAGE.md) สำหรับคู่มือการใช้งานฉบับสมบูรณ์
 
 ## Features
 
@@ -23,6 +25,8 @@
 - 🤝 **Multi-Agent Compatible**: รองรับการใช้งานร่วมกับ [multi-agent-auto-skill](https://github.com/goffity/multi-agent-auto-skill)
 
 ## Quick Start
+
+> For detailed usage examples and workflow guides, see [USAGE.md](USAGE.md)
 
 ### Installation
 
