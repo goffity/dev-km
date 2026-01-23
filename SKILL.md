@@ -21,6 +21,9 @@ description: 4-layer knowledge capture system for development sessions. Use when
 | `/example [lang] [name]` | - | `docs/examples/[lang]/[name].[ext]` | Save code snippets |
 | `/summary weekly\|monthly` | - | `docs/summaries/YYYY-MM-weekN.md` | Session summaries |
 | `/search [query]` | - | Search results | Search knowledge index |
+| `/share [file]` | - | `docs/shared-knowledge/[file]` | Cross-project knowledge |
+| `/flow [name]` | - | `docs/flows/[name].md` | Process flow diagrams |
+| `/pattern [name]` | - | `docs/patterns/[name].md` | Design pattern docs |
 | `/cleanup` | - | Archive + cleanup | Retention policy management |
 
 ## Flow
@@ -40,6 +43,9 @@ docs/
 ├── examples/            # /example output
 │   └── [language]/
 ├── summaries/           # /summary output
+├── shared-knowledge/    # /share output (cross-project)
+├── flows/               # /flow output (Mermaid diagrams)
+├── patterns/            # /pattern output (design patterns)
 └── retrospective/       # /td output
     └── YYYY-MM/
 ```
