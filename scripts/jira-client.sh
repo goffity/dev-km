@@ -94,6 +94,18 @@ validate_config() {
         echo "Run: jira-client.sh init" >&2
         return 1
     fi
+
+    # Sanitize JIRA_DOMAIN: strip protocol and trailing slash
+    JIRA_DOMAIN="${JIRA_DOMAIN#https://}"
+    JIRA_DOMAIN="${JIRA_DOMAIN#http://}"
+    JIRA_DOMAIN="${JIRA_DOMAIN%/}"
+
+    # Validate domain format
+    if [[ ! "$JIRA_DOMAIN" =~ ^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$ ]]; then
+        echo "Error: Invalid JIRA_DOMAIN format: $JIRA_DOMAIN" >&2
+        echo "Expected: company.atlassian.net (without https://)" >&2
+        return 1
+    fi
 }
 
 # Base URL for API calls
