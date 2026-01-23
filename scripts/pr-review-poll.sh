@@ -407,7 +407,11 @@ check_prs() {
 
     # Get list of open PR numbers for cleanup
     local open_pr_numbers
-    open_pr_numbers=$(echo "$prs" | jq -r '.number' | tr '\n' ',' | sed 's/,$//')
+    open_pr_numbers=$(echo "$prs" | jq -r 'if type == "array" then .[].number else .number end' | tr '\n' ',' | sed 's/,$//')
+
+    # Normalize prs to newline-separated JSON objects
+    local prs_normalized
+    prs_normalized=$(echo "$prs" | jq -c 'if type == "array" then .[] else . end')
 
     # Process each PR (use process substitution to avoid subshell)
     while read -r pr; do
@@ -497,7 +501,7 @@ check_prs() {
 
             update_pr_state "$pr_number" "$latest_review_id" "$comment_count" "$review_decision" "$copilot_pending"
         fi
-    done < <(echo "$prs" | jq -c '.')
+    done < <(echo "$prs_normalized")
 
     # Cleanup state for closed PRs
     if [[ -n "$open_pr_numbers" ]]; then
