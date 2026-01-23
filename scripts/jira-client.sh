@@ -114,6 +114,174 @@ get_base_url() {
 }
 
 # =============================================================================
+# Markdown to ADF Converter
+# =============================================================================
+
+# Convert markdown text to Atlassian Document Format (ADF) JSON
+# Supports: headings, bullet lists, ordered lists, code blocks, bold, italic, inline code
+markdown_to_adf() {
+    local markdown="$1"
+
+    # Use jq to parse markdown lines into ADF nodes
+    echo "$markdown" | jq -Rs '
+def parse_inline_marks:
+    # Simple inline formatting: convert **bold**, *italic*, `code`
+    # Uses gsub-based approach for reliability
+    . as $text |
+    # If no special chars, return plain text node
+    if ($text | test("[*`]") | not) then
+        [{type: "text", text: $text}]
+    else
+        # Split by inline code first (highest priority)
+        [$text | split("`")] | .[0] as $parts |
+        if ($parts | length) > 2 then
+            # Has inline code - process pairs
+            [range(0; $parts | length)] | map(
+                $parts[.] as $part |
+                if . % 2 == 1 then
+                    # Odd index = inside backticks
+                    {type: "text", text: $part, marks: [{type: "code"}]}
+                elif ($part | test("\\*\\*")) then
+                    # Process bold in non-code segments
+                    [$part | split("**")] | .[0] as $bparts |
+                    [range(0; $bparts | length)] | map(
+                        $bparts[.] as $bp |
+                        if . % 2 == 1 then
+                            {type: "text", text: $bp, marks: [{type: "strong"}]}
+                        elif ($bp | length) > 0 then
+                            {type: "text", text: $bp}
+                        else empty end
+                    )[]
+                elif ($part | length) > 0 then
+                    {type: "text", text: $part}
+                else empty end
+            )
+        elif ($text | test("\\*\\*")) then
+            # Process bold
+            [$text | split("**")] | .[0] as $bparts |
+            [range(0; $bparts | length)] | map(
+                $bparts[.] as $bp |
+                if . % 2 == 1 then
+                    {type: "text", text: $bp, marks: [{type: "strong"}]}
+                elif ($bp | length) > 0 then
+                    {type: "text", text: $bp}
+                else empty end
+            )
+        elif ($text | test("\\*[^*]+\\*")) then
+            # Process italic
+            [$text | split("*")] | .[0] as $iparts |
+            [range(0; $iparts | length)] | map(
+                $iparts[.] as $ip |
+                if . % 2 == 1 then
+                    {type: "text", text: $ip, marks: [{type: "em"}]}
+                elif ($ip | length) > 0 then
+                    {type: "text", text: $ip}
+                else empty end
+            )
+        else
+            [{type: "text", text: $text}]
+        end
+    end | [.[] | select(.text != "")];
+
+split("\n") |
+
+# Process lines into blocks
+reduce .[] as $line (
+    {blocks: [], current_list: null, list_type: null, code_block: false, code_lines: [], code_lang: ""};
+
+    if .code_block then
+        if ($line | test("^```")) then
+            # End code block
+            .blocks += [{
+                type: "codeBlock",
+                attrs: (if .code_lang != "" then {language: .code_lang} else {} end),
+                content: [{type: "text", text: (.code_lines | join("\n"))}]
+            }] |
+            .code_block = false |
+            .code_lines = [] |
+            .code_lang = ""
+        else
+            .code_lines += [$line]
+        end
+    elif ($line | test("^```")) then
+        # Start code block - flush any pending list
+        (if .current_list != null then
+            .blocks += [{type: .list_type, content: .current_list}] |
+            .current_list = null |
+            .list_type = null
+        else . end) |
+        .code_block = true |
+        .code_lang = ($line | sub("^```"; "") | sub("\\s*$"; ""))
+    elif ($line | test("^#{1,6}\\s")) then
+        # Heading - flush any pending list
+        (if .current_list != null then
+            .blocks += [{type: .list_type, content: .current_list}] |
+            .current_list = null |
+            .list_type = null
+        else . end) |
+        ($line | capture("^(?<hashes>#{1,6})\\s+(?<text>.+)$")) as $m |
+        .blocks += [{
+            type: "heading",
+            attrs: {level: ($m.hashes | length)},
+            content: ($m.text | parse_inline_marks)
+        }]
+    elif ($line | test("^[-*]\\s+")) then
+        # Bullet list item
+        ($line | sub("^[-*]\\s+"; "")) as $text |
+        if .list_type == "bulletList" then
+            .current_list += [{type: "listItem", content: [{type: "paragraph", content: ($text | parse_inline_marks)}]}]
+        else
+            (if .current_list != null then
+                .blocks += [{type: .list_type, content: .current_list}]
+            else . end) |
+            .list_type = "bulletList" |
+            .current_list = [{type: "listItem", content: [{type: "paragraph", content: ($text | parse_inline_marks)}]}]
+        end
+    elif ($line | test("^[0-9]+\\.\\s+")) then
+        # Ordered list item
+        ($line | sub("^[0-9]+\\.\\s+"; "")) as $text |
+        if .list_type == "orderedList" then
+            .current_list += [{type: "listItem", content: [{type: "paragraph", content: ($text | parse_inline_marks)}]}]
+        else
+            (if .current_list != null then
+                .blocks += [{type: .list_type, content: .current_list}]
+            else . end) |
+            .list_type = "orderedList" |
+            .current_list = [{type: "listItem", content: [{type: "paragraph", content: ($text | parse_inline_marks)}]}]
+        end
+    elif ($line | test("^\\s*$")) then
+        # Empty line - flush list
+        (if .current_list != null then
+            .blocks += [{type: .list_type, content: .current_list}] |
+            .current_list = null |
+            .list_type = null
+        else . end)
+    else
+        # Regular paragraph - flush list
+        (if .current_list != null then
+            .blocks += [{type: .list_type, content: .current_list}] |
+            .current_list = null |
+            .list_type = null
+        else . end) |
+        .blocks += [{type: "paragraph", content: ($line | parse_inline_marks)}]
+    end
+) |
+
+# Flush any remaining list
+(if .current_list != null then
+    .blocks += [{type: .list_type, content: .current_list}]
+else . end) |
+
+# Build final ADF document
+{
+    type: "doc",
+    version: 1,
+    content: (if (.blocks | length) == 0 then [{type: "paragraph", content: [{type: "text", text: ""}]}] else .blocks end)
+}
+'
+}
+
+# =============================================================================
 # API Helper Functions
 # =============================================================================
 
@@ -302,26 +470,19 @@ cmd_create() {
     # Build payload using jq for safe JSON escaping
     local payload
     if [[ -n "$description" ]]; then
+        local adf_description
+        adf_description=$(markdown_to_adf "$description")
+
         payload=$(jq -n \
             --arg project "$project" \
             --arg summary "$summary" \
-            --arg description "$description" \
+            --argjson description "$adf_description" \
             --arg issue_type "$issue_type" \
             '{
                 fields: {
                     project: { key: $project },
                     summary: $summary,
-                    description: {
-                        type: "doc",
-                        version: 1,
-                        content: [{
-                            type: "paragraph",
-                            content: [{
-                                type: "text",
-                                text: $description
-                            }]
-                        }]
-                    },
+                    description: $description,
                     issuetype: { name: $issue_type }
                 }
             }')
@@ -496,20 +657,11 @@ cmd_comment() {
 
     validate_issue_key "$issue_key" || return 1
 
-    # Build payload using jq for safe JSON escaping
-    local payload=$(jq -n --arg comment "$comment" '{
-        body: {
-            type: "doc",
-            version: 1,
-            content: [{
-                type: "paragraph",
-                content: [{
-                    type: "text",
-                    text: $comment
-                }]
-            }]
-        }
-    }')
+    # Convert markdown comment to ADF format
+    local adf_body
+    adf_body=$(markdown_to_adf "$comment")
+
+    local payload=$(jq -n --argjson body "$adf_body" '{body: $body}')
 
     local result=$(jira_api POST "/issue/$issue_key/comment" "$payload")
 
