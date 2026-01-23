@@ -19,6 +19,7 @@ description: 4-layer knowledge capture system for development sessions. Use when
 | `/pr-review` | - | Learning doc + PR updates | Handle PR review feedback |
 | `/pr-poll` | - | Notification daemon | Auto PR review notifications |
 | `/example [lang] [name]` | - | `docs/examples/[lang]/[name].[ext]` | Save code snippets |
+| `/summary weekly\|monthly` | - | `docs/summaries/YYYY-MM-weekN.md` | Session summaries |
 | `/cleanup` | - | Archive + cleanup | Retention policy management |
 
 ## Flow
@@ -37,6 +38,7 @@ docs/
 ├── knowledge-base/      # /distill output
 ├── examples/            # /example output
 │   └── [language]/
+├── summaries/           # /summary output
 └── retrospective/       # /td output
     └── YYYY-MM/
 ```
