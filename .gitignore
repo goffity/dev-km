@@ -17,3 +17,4 @@ dist/
 *.tmp
 *.bak
 .jira-config
+.knowledge-index.json

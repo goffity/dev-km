@@ -20,6 +20,7 @@ description: 4-layer knowledge capture system for development sessions. Use when
 | `/pr-poll` | - | Notification daemon | Auto PR review notifications |
 | `/example [lang] [name]` | - | `docs/examples/[lang]/[name].[ext]` | Save code snippets |
 | `/summary weekly\|monthly` | - | `docs/summaries/YYYY-MM-weekN.md` | Session summaries |
+| `/search [query]` | - | Search results | Search knowledge index |
 | `/cleanup` | - | Archive + cleanup | Retention policy management |
 
 ## Flow
