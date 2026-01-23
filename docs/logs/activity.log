@@ -39,3 +39,4 @@
 2026-01-22 23:08 | working | Usage documentation for skill system (#67)
 2026-01-22 23:29 | completed | Usage documentation #67 - PR #68 merged
 2026-01-23 14:52 | working | Fix jira-client.sh init for non-interactive environments (#73)
+2026-01-23 15:25 | completed | Fix JSON array format handling in PR polling (#78)
