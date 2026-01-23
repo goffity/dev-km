@@ -606,6 +606,167 @@ cmd_create() {
     fi
 }
 
+# Create subtask under a parent issue
+cmd_create_subtask() {
+    validate_config || return 1
+
+    local parent_key="" summary="" description="" due_date="" assign_to=""
+
+    # Parse arguments
+    local positional=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --due)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --due requires a date (YYYY-MM-DD)" >&2; return 1; }
+                due_date="$2"; shift 2 ;;
+            --assign)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --assign requires a value (accountId or 'me')" >&2; return 1; }
+                assign_to="$2"; shift 2 ;;
+            --assign-self)
+                assign_to="me"; shift ;;
+            *)
+                positional+=("$1"); shift ;;
+        esac
+    done
+
+    parent_key="${positional[0]:-}"
+    summary="${positional[1]:-}"
+    description="${positional[2]:-}"
+
+    if [[ -z "$parent_key" ]] || [[ -z "$summary" ]]; then
+        echo "Usage: jira-client.sh create-subtask <parent-key> <summary> [description] [--due YYYY-MM-DD] [--assign me|accountId]" >&2
+        return 1
+    fi
+
+    validate_issue_key "$parent_key" || return 1
+
+    # Validate due date format if provided
+    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
+        return 1
+    fi
+
+    # Extract project from parent key
+    local project
+    project=$(echo "$parent_key" | cut -d'-' -f1)
+
+    # Build payload
+    local payload
+    if [[ -n "$description" ]]; then
+        local adf_description
+        adf_description=$(markdown_to_adf "$description")
+
+        payload=$(jq -n \
+            --arg project "$project" \
+            --arg parent "$parent_key" \
+            --arg summary "$summary" \
+            --argjson description "$adf_description" \
+            --arg due_date "$due_date" \
+            '{
+                fields: {
+                    project: { key: $project },
+                    parent: { key: $parent },
+                    summary: $summary,
+                    description: $description,
+                    issuetype: { name: "Subtask" }
+                }
+            } | if $due_date != "" then .fields.duedate = $due_date else . end')
+    else
+        payload=$(jq -n \
+            --arg project "$project" \
+            --arg parent "$parent_key" \
+            --arg summary "$summary" \
+            --arg due_date "$due_date" \
+            '{
+                fields: {
+                    project: { key: $project },
+                    parent: { key: $parent },
+                    summary: $summary,
+                    issuetype: { name: "Subtask" }
+                }
+            } | if $due_date != "" then .fields.duedate = $due_date else . end')
+    fi
+
+    local result=$(jira_api POST "/issue" "$payload")
+
+    if echo "$result" | jq -e '.key' > /dev/null 2>&1; then
+        local key=$(echo "$result" | jq -r '.key')
+        echo "Created subtask: $key (parent: $parent_key)" >&2
+        echo "URL: https://${JIRA_DOMAIN}/browse/$key" >&2
+
+        # Handle assignment
+        if [[ -n "$assign_to" ]]; then
+            local aid="$assign_to"
+            if [[ "$aid" == "me" ]]; then
+                aid=$(jira_api GET "/myself" | jq -r '.accountId')
+            fi
+            local assign_payload
+            assign_payload=$(jq -n --arg id "$aid" '{accountId: $id}')
+            local assign_result
+            assign_result=$(jira_api PUT "/issue/${key}/assignee" "$assign_payload")
+            if [[ -z "$assign_result" ]]; then
+                echo "Assigned: $key" >&2
+            fi
+        else
+            auto_assign "$summary" "$key"
+        fi
+
+        echo "$key"
+    else
+        echo "Failed to create subtask:" >&2
+        echo "$result" | jq -r '.errors // .errorMessages[]?' 2>/dev/null || echo "$result" >&2
+        return 1
+    fi
+}
+
+# Create multiple subtasks from a JSON file
+cmd_create_subtasks() {
+    validate_config || return 1
+
+    local parent_key="${1:-}"
+    local file="${2:-}"
+
+    if [[ -z "$parent_key" ]] || [[ -z "$file" ]]; then
+        echo "Usage: jira-client.sh create-subtasks <parent-key> <file.json>" >&2
+        echo "" >&2
+        echo "File format (JSON array):" >&2
+        echo '  [{"summary": "Task 1", "description": "Details", "due": "2026-02-10"}]' >&2
+        return 1
+    fi
+
+    validate_issue_key "$parent_key" || return 1
+
+    if [[ ! -f "$file" ]]; then
+        echo "Error: File not found: $file" >&2
+        return 1
+    fi
+
+    local count=0
+    local total
+    total=$(jq '. | length' "$file")
+
+    echo "Creating $total subtasks under $parent_key..." >&2
+
+    jq -c '.[]' "$file" | while read -r item; do
+        local summary due_date description assign
+        summary=$(echo "$item" | jq -r '.summary')
+        description=$(echo "$item" | jq -r '.description // ""')
+        due_date=$(echo "$item" | jq -r '.due // ""')
+        assign=$(echo "$item" | jq -r '.assign // ""')
+
+        local args=("$parent_key" "$summary")
+        [[ -n "$description" ]] && args+=("$description")
+        [[ -n "$due_date" ]] && args+=("--due" "$due_date")
+        [[ -n "$assign" ]] && args+=("--assign" "$assign")
+
+        cmd_create_subtask "${args[@]}"
+        count=$((count + 1))
+        echo "  [$count/$total] done" >&2
+    done
+
+    echo "Created $total subtasks under $parent_key" >&2
+}
+
 # Get issue details
 cmd_get() {
     validate_config || return 1
@@ -903,6 +1064,10 @@ Configuration Commands:
 Issue Commands:
   create <project> <summary> [description] [type] [--assign me|accountId]
                         Create new issue (auto-assigns via prefix mapping)
+  create-subtask <parent-key> <summary> [description] [--due YYYY-MM-DD] [--assign me|accountId]
+                        Create subtask under parent issue
+  create-subtasks <parent-key> <file.json>
+                        Batch create subtasks from JSON file
   get <issue_key>       Get issue details
   list [project] [status] [max]
                         List issues in project
@@ -932,6 +1097,8 @@ Examples:
   JIRA_API_TOKEN=XXX jira-client.sh init --domain myco.atlassian.net --email me@co.com --project PROJ
   jira-client.sh create PROJ "Fix login bug" "Users can't login" Bug
   jira-client.sh create PROJ "[api] Add endpoint" "Details" Task --assign me
+  jira-client.sh create-subtask PROJ-123 "[api] Implement handler" "## Details" --due 2026-02-10
+  jira-client.sh create-subtasks PROJ-123 subtasks.json
   jira-client.sh users PROJ
   jira-client.sh list PROJ "In Progress"
   jira-client.sh transition PROJ-123 31
@@ -977,6 +1144,8 @@ main() {
         status)      cmd_status "$@" ;;
         projects)    cmd_projects "$@" ;;
         create)      cmd_create "$@" ;;
+        create-subtask)  cmd_create_subtask "$@" ;;
+        create-subtasks) cmd_create_subtasks "$@" ;;
         get)         cmd_get "$@" ;;
         list)        cmd_list "$@" ;;
         search)      cmd_search "$@" ;;
