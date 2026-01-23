@@ -18,6 +18,7 @@ description: 4-layer knowledge capture system for development sessions. Use when
 | `/commit` | - | Git commits | Atomic commits via TDG |
 | `/pr-review` | - | Learning doc + PR updates | Handle PR review feedback |
 | `/pr-poll` | - | Notification daemon | Auto PR review notifications |
+| `/example [lang] [name]` | - | `docs/examples/[lang]/[name].[ext]` | Save code snippets |
 | `/cleanup` | - | Archive + cleanup | Retention policy management |
 
 ## Flow
@@ -34,6 +35,8 @@ docs/
 ├── learnings/           # /mem output
 │   └── YYYY-MM/DD/
 ├── knowledge-base/      # /distill output
+├── examples/            # /example output
+│   └── [language]/
 └── retrospective/       # /td output
     └── YYYY-MM/
 ```
