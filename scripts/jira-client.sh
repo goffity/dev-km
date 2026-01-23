@@ -108,6 +108,40 @@ validate_config() {
     fi
 }
 
+# Auto-assign based on summary prefix mapping
+auto_assign() {
+    local summary="$1"
+    local issue_key="$2"
+
+    # Extract prefix from [prefix] pattern in summary
+    local prefix
+    prefix=$(echo "$summary" | grep -oE '^\[[^]]+\]' | tr -d '[]' | tr '-' '_' | tr '[:upper:]' '[:lower:]')
+
+    if [[ -z "$prefix" ]]; then
+        return 0
+    fi
+
+    # Lookup in mapping (JIRA_ASSIGN_MAP_<prefix>)
+    local var_name="JIRA_ASSIGN_MAP_${prefix}"
+    local account_id="${!var_name}"
+
+    if [[ -n "$account_id" ]]; then
+        local payload
+        payload=$(jq -n --arg id "$account_id" '{accountId: $id}')
+        local result
+        result=$(jira_api PUT "/issue/${issue_key}/assignee" "$payload")
+        if [[ -z "$result" ]]; then
+            echo "Auto-assigned $issue_key (prefix: $prefix)" >&2
+        else
+            echo "Warning: Auto-assign failed for $issue_key" >&2
+        fi
+    else
+        echo "Note: No auto-assign mapping for prefix [$prefix]." >&2
+        echo "  Add to config: JIRA_ASSIGN_MAP_${prefix}=\"<accountId>\"" >&2
+        echo "  Or create a Jira Automation Rule (Project Settings > Automation)" >&2
+    fi
+}
+
 # Base URL for API calls
 get_base_url() {
     echo "https://${JIRA_DOMAIN}/rest/api/3"
@@ -478,13 +512,29 @@ cmd_projects() {
 cmd_create() {
     validate_config || return 1
 
-    local project="${1:-$JIRA_PROJECT}"
-    local summary="$2"
-    local description="$3"
-    local issue_type="${4:-Task}"
+    local project="" summary="" description="" issue_type="Task" assign_to=""
+
+    # Parse positional and flag arguments
+    local positional=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --assign)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --assign requires a value (accountId or 'me')" >&2; return 1; }
+                assign_to="$2"; shift 2 ;;
+            --assign-self)
+                assign_to="me"; shift ;;
+            *)
+                positional+=("$1"); shift ;;
+        esac
+    done
+
+    project="${positional[0]:-$JIRA_PROJECT}"
+    summary="${positional[1]:-}"
+    description="${positional[2]:-}"
+    issue_type="${positional[3]:-Task}"
 
     if [[ -z "$project" ]] || [[ -z "$summary" ]]; then
-        echo "Usage: jira-client.sh create <project> <summary> [description] [issue_type]" >&2
+        echo "Usage: jira-client.sh create <project> <summary> [description] [issue_type] [--assign me|accountId]" >&2
         return 1
     fi
 
@@ -528,6 +578,26 @@ cmd_create() {
         # Info messages to stderr, key to stdout for programmatic use
         echo "Created: $key" >&2
         echo "URL: https://${JIRA_DOMAIN}/browse/$key" >&2
+
+        # Handle assignment: explicit flag > prefix mapping
+        if [[ -n "$assign_to" ]]; then
+            local aid="$assign_to"
+            if [[ "$aid" == "me" ]]; then
+                aid=$(jira_api GET "/myself" | jq -r '.accountId')
+            fi
+            local assign_payload
+            assign_payload=$(jq -n --arg id "$aid" '{accountId: $id}')
+            local assign_result
+            assign_result=$(jira_api PUT "/issue/${key}/assignee" "$assign_payload")
+            if [[ -z "$assign_result" ]]; then
+                echo "Assigned: $key" >&2
+            else
+                echo "Warning: Assignment failed for $key" >&2
+            fi
+        else
+            auto_assign "$summary" "$key"
+        fi
+
         echo "$key"
     else
         echo "Failed to create issue:" >&2
@@ -757,6 +827,33 @@ cmd_my_issues() {
     echo "$result" | jq -r '.issues[] | "\(.key)\t\(.fields.status.name)\t\(.fields.summary)"' | column -t -s $'\t'
 }
 
+# List assignable users for a project
+cmd_users() {
+    validate_config || return 1
+
+    local project="${1:-$JIRA_PROJECT}"
+
+    if [[ -z "$project" ]]; then
+        echo "Usage: jira-client.sh users [project]" >&2
+        return 1
+    fi
+
+    local result
+    result=$(jira_api GET "/user/assignable/search?project=$project&maxResults=50")
+
+    if echo "$result" | jq -e '.[0].accountId' > /dev/null 2>&1; then
+        printf "%-40s %-25s %s\n" "ACCOUNT_ID" "DISPLAY_NAME" "EMAIL"
+        printf "%-40s %-25s %s\n" "----------" "------------" "-----"
+        echo "$result" | jq -r '.[] | "\(.accountId)\t\(.displayName)\t\(.emailAddress // "N/A")"' | \
+            while IFS=$'\t' read -r id name email; do
+                printf "%-40s %-25s %s\n" "$id" "$name" "$email"
+            done
+    else
+        echo "No assignable users found for project $project" >&2
+        return 1
+    fi
+}
+
 # Show status/config info
 cmd_status() {
     echo "=== Jira Client Configuration ==="
@@ -804,8 +901,8 @@ Configuration Commands:
   status                Show configuration status
 
 Issue Commands:
-  create <project> <summary> [description] [type]
-                        Create new issue
+  create <project> <summary> [description] [type] [--assign me|accountId]
+                        Create new issue (auto-assigns via prefix mapping)
   get <issue_key>       Get issue details
   list [project] [status] [max]
                         List issues in project
@@ -825,6 +922,7 @@ Other Commands:
                         Add comment to issue
   assign <issue_key> [account_id|me|-1]
                         Assign issue (me=self, -1=unassign)
+  users [project]       List assignable users with accountId
   projects              List available projects
 
 Examples:
@@ -833,6 +931,8 @@ Examples:
   jira-client.sh init --domain myco.atlassian.net --email me@co.com --project PROJ --token-stdin <<< "\$TOKEN"
   JIRA_API_TOKEN=XXX jira-client.sh init --domain myco.atlassian.net --email me@co.com --project PROJ
   jira-client.sh create PROJ "Fix login bug" "Users can't login" Bug
+  jira-client.sh create PROJ "[api] Add endpoint" "Details" Task --assign me
+  jira-client.sh users PROJ
   jira-client.sh list PROJ "In Progress"
   jira-client.sh transition PROJ-123 31
   jira-client.sh my-issues "To Do"
@@ -842,6 +942,13 @@ Environment Variables:
   JIRA_EMAIL            Your Atlassian account email
   JIRA_API_TOKEN        API token from Atlassian
   JIRA_PROJECT          Default project key
+
+Auto-assign Configuration:
+  Add prefix mappings to .jira-config:
+    JIRA_ASSIGN_MAP_api="accountId-of-backend-dev"
+    JIRA_ASSIGN_MAP_frontend="accountId-of-frontend-dev"
+  Issues with [api] or [frontend] prefix will be auto-assigned.
+  Use 'jira-client.sh users' to find accountIds.
 
 Token Methods (most secure first):
   1. Interactive mode: prompted securely (hidden input)
@@ -878,6 +985,7 @@ main() {
         transition)  cmd_transition "$@" ;;
         comment)     cmd_comment "$@" ;;
         assign)      cmd_assign "$@" ;;
+        users)       cmd_users "$@" ;;
         *)
             echo "Unknown command: $command" >&2
             echo "Run 'jira-client.sh help' for usage" >&2
