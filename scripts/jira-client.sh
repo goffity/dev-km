@@ -135,8 +135,37 @@ jira_api() {
 
 # Initialize configuration
 cmd_init() {
-    local config_type="${1:-project}"
+    local domain="" email="" token="" project=""
+    local config_type="project"
     local config_file
+
+    # Parse arguments for non-interactive mode
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --domain)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --domain requires a value" >&2; return 1; }
+                domain="$2"; shift 2 ;;
+            --email)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --email requires a value" >&2; return 1; }
+                email="$2"; shift 2 ;;
+            --token)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --token requires a value" >&2; return 1; }
+                token="$2"; shift 2 ;;
+            --project)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --project requires a value" >&2; return 1; }
+                project="$2"; shift 2 ;;
+            --location)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --location requires a value" >&2; return 1; }
+                [[ "$2" != "project" && "$2" != "user" ]] && { echo "Error: --location must be 'project' or 'user'" >&2; return 1; }
+                config_type="$2"; shift 2 ;;
+            user|project) config_type="$1"; shift ;;
+            *)
+                echo "Unknown option: $1" >&2
+                echo "Usage: jira-client.sh init --domain X --email Y --token Z --project P [--location project|user]" >&2
+                return 1
+                ;;
+        esac
+    done
 
     if [[ "$config_type" == "user" ]]; then
         config_file="$JIRA_USER_CONFIG"
@@ -145,15 +174,54 @@ cmd_init() {
         config_file="$JIRA_CONFIG_FILE"
     fi
 
-    echo "Jira Configuration Setup"
-    echo "========================"
-    echo ""
+    # If arguments not fully provided, fall back to interactive mode
+    if [[ -z "$domain" ]] || [[ -z "$email" ]] || [[ -z "$token" ]] || [[ -z "$project" ]]; then
+        # Check if running in interactive terminal
+        if [[ ! -t 0 ]]; then
+            echo "Error: Non-interactive mode detected but required arguments missing." >&2
+            echo "" >&2
+            echo "Usage: jira-client.sh init --domain X --email Y --token Z --project P [--location project|user]" >&2
+            echo "" >&2
+            echo "Arguments:" >&2
+            echo "  --domain    Jira domain (e.g., mycompany.atlassian.net)" >&2
+            echo "  --email     Your Atlassian account email" >&2
+            echo "  --token     API token from https://id.atlassian.com/manage-profile/security/api-tokens" >&2
+            echo "  --project   Default project key (e.g., PROJ)" >&2
+            echo "  --location  Config location: 'project' (default) or 'user'" >&2
+            return 1
+        fi
 
-    read -p "Jira Domain (e.g., mycompany.atlassian.net): " domain
-    read -p "Email: " email
-    read -sp "API Token: " token
-    echo ""
-    read -p "Default Project Key (e.g., PROJ): " project
+        echo "Jira Configuration Setup"
+        echo "========================"
+        echo ""
+
+        [[ -z "$domain" ]] && read -p "Jira Domain (e.g., mycompany.atlassian.net): " domain
+        [[ -z "$email" ]] && read -p "Email: " email
+        [[ -z "$token" ]] && { read -sp "API Token: " token; echo ""; }
+        [[ -z "$project" ]] && read -p "Default Project Key (e.g., PROJ): " project
+    fi
+
+    # Validate required fields
+    if [[ -z "$domain" ]] || [[ -z "$email" ]] || [[ -z "$token" ]] || [[ -z "$project" ]]; then
+        echo "Error: All fields are required (domain, email, token, project)" >&2
+        return 1
+    fi
+
+    # Format validation
+    if [[ ! "$domain" =~ ^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$ ]]; then
+        echo "Error: Invalid domain format. Expected something like 'mycompany.atlassian.net'." >&2
+        return 1
+    fi
+
+    if [[ ! "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+        echo "Error: Invalid email format. Expected something like 'user@example.com'." >&2
+        return 1
+    fi
+
+    if [[ ! "$project" =~ ^[A-Z][A-Z0-9]*$ ]]; then
+        echo "Error: Invalid project key format. Use uppercase letters and numbers (e.g., 'PROJ')." >&2
+        return 1
+    fi
 
     cat > "$config_file" << EOF
 # Jira Configuration
@@ -167,9 +235,7 @@ EOF
 
     chmod 600 "$config_file"
 
-    echo ""
     echo "Configuration saved to: $config_file"
-    echo ""
 
     # Add to .gitignore if project-level
     if [[ "$config_type" != "user" ]] && [[ -f ".gitignore" ]]; then
@@ -547,7 +613,8 @@ Jira API Client for Claude KM Skill
 Usage: jira-client.sh <command> [arguments]
 
 Configuration Commands:
-  init [project|user]   Initialize configuration
+  init [options]         Initialize configuration
+                        Options: --domain, --email, --token, --project, --location
   test                  Test connection
   status                Show configuration status
 
@@ -577,6 +644,8 @@ Other Commands:
 
 Examples:
   jira-client.sh init
+  jira-client.sh init --domain myco.atlassian.net --email me@co.com --token XXXX --project PROJ
+  jira-client.sh init --domain myco.atlassian.net --email me@co.com --token XXXX --project PROJ --location user
   jira-client.sh create PROJ "Fix login bug" "Users can't login" Bug
   jira-client.sh list PROJ "In Progress"
   jira-client.sh transition PROJ-123 31
@@ -587,6 +656,10 @@ Environment Variables:
   JIRA_EMAIL            Your Atlassian account email
   JIRA_API_TOKEN        API token from Atlassian
   JIRA_PROJECT          Default project key
+
+Security Note:
+  Passing --token via CLI args exposes it in process list and shell history.
+  Prefer setting JIRA_API_TOKEN env var or using interactive mode for sensitive tokens.
 EOF
 }
 

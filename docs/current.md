@@ -1,5 +1,5 @@
-STATE: completed
-TASK: Add comprehensive usage documentation for skill system
-BRANCH: main
-SINCE: 2026-01-22 23:29
-ISSUE: #67
+STATE: working
+TASK: Fix jira-client.sh init command for non-interactive environments
+SINCE: 2026-01-23 14:52
+ISSUE: #73
+BRANCH: fix/73-jira-init-non-interactive
