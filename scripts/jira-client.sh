@@ -58,10 +58,24 @@ JIRA_CONFIG_FILE="${JIRA_CONFIG_FILE:-.jira-config}"
 JIRA_USER_CONFIG="$HOME/.config/claude-km/jira.conf"
 
 # Load config from file if exists
+# Priority: .jira-config > .env > ~/.config/claude-km/jira.conf > env vars
 load_config() {
     # Try project-level config first
     if [[ -f "$JIRA_CONFIG_FILE" ]]; then
         source "$JIRA_CONFIG_FILE"
+    # Then try .env file (only load JIRA_* variables)
+    elif [[ -f ".env" ]]; then
+        while IFS='=' read -r key value; do
+            # Only export JIRA_* variables, skip comments and empty lines
+            if [[ "$key" =~ ^JIRA_ ]]; then
+                # Remove surrounding quotes from value
+                value="${value%\"}"
+                value="${value#\"}"
+                value="${value%\'}"
+                value="${value#\'}"
+                export "$key=$value"
+            fi
+        done < .env
     # Then try user-level config
     elif [[ -f "$JIRA_USER_CONFIG" ]]; then
         source "$JIRA_USER_CONFIG"
@@ -89,7 +103,8 @@ validate_config() {
         echo "Set these in one of:" >&2
         echo "  1. Environment variables" >&2
         echo "  2. Project config: $JIRA_CONFIG_FILE" >&2
-        echo "  3. User config: $JIRA_USER_CONFIG" >&2
+        echo "  3. Project .env file" >&2
+        echo "  4. User config: $JIRA_USER_CONFIG" >&2
         echo "" >&2
         echo "Run: jira-client.sh init" >&2
         return 1
@@ -374,9 +389,9 @@ cmd_init() {
                 project="$2"; shift 2 ;;
             --location)
                 [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --location requires a value" >&2; return 1; }
-                [[ "$2" != "project" && "$2" != "user" ]] && { echo "Error: --location must be 'project' or 'user'" >&2; return 1; }
+                [[ "$2" != "project" && "$2" != "user" && "$2" != "env" ]] && { echo "Error: --location must be 'project', 'user', or 'env'" >&2; return 1; }
                 config_type="$2"; shift 2 ;;
-            user|project) config_type="$1"; shift ;;
+            user|project|env) config_type="$1"; shift ;;
             *)
                 echo "Unknown option: $1" >&2
                 echo "Usage: jira-client.sh init --domain X --email Y --token Z --project P [--location project|user]" >&2
@@ -402,6 +417,8 @@ cmd_init() {
     if [[ "$config_type" == "user" ]]; then
         config_file="$JIRA_USER_CONFIG"
         mkdir -p "$(dirname "$config_file")"
+    elif [[ "$config_type" == "env" ]]; then
+        config_file=".env"
     else
         config_file="$JIRA_CONFIG_FILE"
     fi
@@ -420,7 +437,7 @@ cmd_init() {
             echo "  --token       API token (visible in process list - use alternatives below)" >&2
             echo "  --token-stdin Read token from stdin (e.g., echo \$TOKEN | jira-client.sh init --token-stdin ...)" >&2
             echo "  --project     Default project key (e.g., PROJ)" >&2
-            echo "  --location    Config location: 'project' (default) or 'user'" >&2
+            echo "  --location    Config location: 'project' (default), 'user', or 'env'" >&2
             echo "" >&2
             echo "Token can also be set via JIRA_API_TOKEN environment variable." >&2
             return 1
@@ -458,7 +475,24 @@ cmd_init() {
         return 1
     fi
 
-    cat > "$config_file" << EOF
+    if [[ "$config_type" == "env" ]]; then
+        # For .env: remove existing JIRA_* lines and append new ones
+        if [[ -f "$config_file" ]]; then
+            # Remove existing JIRA_* lines
+            local tmp_file
+            tmp_file=$(mktemp)
+            grep -v '^JIRA_' "$config_file" > "$tmp_file" 2>/dev/null || true
+            mv "$tmp_file" "$config_file"
+        fi
+        # Append JIRA config
+        cat >> "$config_file" << EOF
+JIRA_DOMAIN="$domain"
+JIRA_EMAIL="$email"
+JIRA_API_TOKEN="$token"
+JIRA_PROJECT="$project"
+EOF
+    else
+        cat > "$config_file" << EOF
 # Jira Configuration
 # Generated: $(date '+%Y-%m-%d %H:%M')
 
@@ -467,6 +501,7 @@ JIRA_EMAIL="$email"
 JIRA_API_TOKEN="$token"
 JIRA_PROJECT="$project"
 EOF
+    fi
 
     chmod 600 "$config_file"
 
@@ -474,9 +509,16 @@ EOF
 
     # Add to .gitignore if project-level
     if [[ "$config_type" != "user" ]] && [[ -f ".gitignore" ]]; then
-        if ! grep -q "^\.jira-config$" .gitignore 2>/dev/null; then
-            echo ".jira-config" >> .gitignore
-            echo "Added .jira-config to .gitignore"
+        if [[ "$config_type" == "env" ]]; then
+            if ! grep -q "^\.env$" .gitignore 2>/dev/null; then
+                echo ".env" >> .gitignore
+                echo "Added .env to .gitignore"
+            fi
+        else
+            if ! grep -q "^\.jira-config$" .gitignore 2>/dev/null; then
+                echo ".jira-config" >> .gitignore
+                echo "Added .jira-config to .gitignore"
+            fi
         fi
     fi
 }
@@ -1057,7 +1099,8 @@ Usage: jira-client.sh <command> [arguments]
 
 Configuration Commands:
   init [options]         Initialize configuration
-                        Options: --domain, --email, --token, --token-stdin, --project, --location
+                        Options: --domain, --email, --token, --token-stdin, --project
+                        --location: project (default), user, or env (.env file)
   test                  Test connection
   status                Show configuration status
 
@@ -1095,6 +1138,7 @@ Examples:
   jira-client.sh init --domain myco.atlassian.net --email me@co.com --token XXXX --project PROJ
   jira-client.sh init --domain myco.atlassian.net --email me@co.com --project PROJ --token-stdin <<< "\$TOKEN"
   JIRA_API_TOKEN=XXX jira-client.sh init --domain myco.atlassian.net --email me@co.com --project PROJ
+  jira-client.sh init --domain myco.atlassian.net --email me@co.com --token X --project P --location env
   jira-client.sh create PROJ "Fix login bug" "Users can't login" Bug
   jira-client.sh create PROJ "[api] Add endpoint" "Details" Task --assign me
   jira-client.sh create-subtask PROJ-123 "[api] Implement handler" "## Details" --due 2026-02-10
