@@ -38,16 +38,37 @@ CWD=$(echo "$INPUT" | jq -r '.cwd // ""')
 RAW_PROJECT_NAME=$(basename "$CWD" 2>/dev/null || echo "Claude Code")
 PROJECT_NAME=$(sanitize_for_applescript "$RAW_PROJECT_NAME")
 
+# Get terminal identifier for distinguishing between tabs
+TTY_NAME=$(tty 2>/dev/null | sed 's|/dev/||' || echo "")
+# Try to get relative path for more context
+SHORT_PATH=$(echo "$CWD" | sed "s|^$HOME|~|" 2>/dev/null || echo "$CWD")
+SHORT_PATH=$(sanitize_for_applescript "$SHORT_PATH")
+
+# Build terminal identifier (configurable via CLAUDE_NOTIFY_FORMAT)
+# Formats: tty (default), path, both
+NOTIFY_FORMAT="${CLAUDE_NOTIFY_FORMAT:-tty}"
+case "$NOTIFY_FORMAT" in
+    path)
+        TERMINAL_ID="$SHORT_PATH"
+        ;;
+    both)
+        TERMINAL_ID="$SHORT_PATH ($TTY_NAME)"
+        ;;
+    *)
+        TERMINAL_ID="${TTY_NAME:-$SESSION_ID}"
+        ;;
+esac
+
 # Notification messages based on type
 case "$NOTIFICATION_TYPE" in
     "idle_prompt")
         TITLE="Claude Code - $PROJECT_NAME"
-        MESSAGE="Waiting for your input (session: $SESSION_ID)"
+        MESSAGE="Waiting for your input ($TERMINAL_ID)"
         SOUND="Ping"
         ;;
     "permission_prompt")
         TITLE="Claude Code - Permission Required"
-        MESSAGE="$PROJECT_NAME needs your approval"
+        MESSAGE="$PROJECT_NAME needs your approval ($TERMINAL_ID)"
         SOUND="Basso"
         ;;
     "auth_success")
@@ -76,7 +97,17 @@ osascript -e "display notification \"$SAFE_MESSAGE\" with title \"$SAFE_TITLE\" 
 
 # Optional: Also send to terminal-notifier if available (for better action support)
 if command -v terminal-notifier &> /dev/null; then
-    terminal-notifier -title "$SAFE_TITLE" -message "$SAFE_MESSAGE" -sound "$SOUND" -group "claude-code-$SESSION_ID"
+    # Detect terminal app for click-to-focus
+    TERM_APP="${TERM_PROGRAM:-}"
+    ACTIVATE_ARG=""
+    case "$TERM_APP" in
+        iTerm.app)  ACTIVATE_ARG="-activate com.googlecode.iterm2" ;;
+        Apple_Terminal) ACTIVATE_ARG="-activate com.apple.Terminal" ;;
+        WezTerm)    ACTIVATE_ARG="-activate com.github.wez.wezterm" ;;
+    esac
+
+    terminal-notifier -title "$SAFE_TITLE" -message "$SAFE_MESSAGE" -sound "$SOUND" \
+        -group "claude-code-$SESSION_ID" $ACTIVATE_ARG
 fi
 
 exit 0
