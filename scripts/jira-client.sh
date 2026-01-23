@@ -319,6 +319,8 @@ cmd_init() {
     local config_type="project"
     local config_file
 
+    local token_stdin=false
+
     # Parse arguments for non-interactive mode
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -331,6 +333,8 @@ cmd_init() {
             --token)
                 [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --token requires a value" >&2; return 1; }
                 token="$2"; shift 2 ;;
+            --token-stdin)
+                token_stdin=true; shift ;;
             --project)
                 [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --project requires a value" >&2; return 1; }
                 project="$2"; shift 2 ;;
@@ -346,6 +350,20 @@ cmd_init() {
                 ;;
         esac
     done
+
+    # Read token from stdin if --token-stdin was specified
+    if [[ "$token_stdin" == true ]]; then
+        read -r token
+        if [[ -z "$token" ]]; then
+            echo "Error: No token received from stdin" >&2
+            return 1
+        fi
+    fi
+
+    # Fall back to JIRA_API_TOKEN environment variable if --token not provided
+    if [[ -z "$token" ]] && [[ -n "${JIRA_API_TOKEN:-}" ]]; then
+        token="$JIRA_API_TOKEN"
+    fi
 
     if [[ "$config_type" == "user" ]]; then
         config_file="$JIRA_USER_CONFIG"
@@ -363,11 +381,14 @@ cmd_init() {
             echo "Usage: jira-client.sh init --domain X --email Y --token Z --project P [--location project|user]" >&2
             echo "" >&2
             echo "Arguments:" >&2
-            echo "  --domain    Jira domain (e.g., mycompany.atlassian.net)" >&2
-            echo "  --email     Your Atlassian account email" >&2
-            echo "  --token     API token from https://id.atlassian.com/manage-profile/security/api-tokens" >&2
-            echo "  --project   Default project key (e.g., PROJ)" >&2
-            echo "  --location  Config location: 'project' (default) or 'user'" >&2
+            echo "  --domain      Jira domain (e.g., mycompany.atlassian.net)" >&2
+            echo "  --email       Your Atlassian account email" >&2
+            echo "  --token       API token (visible in process list - use alternatives below)" >&2
+            echo "  --token-stdin Read token from stdin (e.g., echo \$TOKEN | jira-client.sh init --token-stdin ...)" >&2
+            echo "  --project     Default project key (e.g., PROJ)" >&2
+            echo "  --location    Config location: 'project' (default) or 'user'" >&2
+            echo "" >&2
+            echo "Token can also be set via JIRA_API_TOKEN environment variable." >&2
             return 1
         fi
 
@@ -778,7 +799,7 @@ Usage: jira-client.sh <command> [arguments]
 
 Configuration Commands:
   init [options]         Initialize configuration
-                        Options: --domain, --email, --token, --project, --location
+                        Options: --domain, --email, --token, --token-stdin, --project, --location
   test                  Test connection
   status                Show configuration status
 
@@ -809,7 +830,8 @@ Other Commands:
 Examples:
   jira-client.sh init
   jira-client.sh init --domain myco.atlassian.net --email me@co.com --token XXXX --project PROJ
-  jira-client.sh init --domain myco.atlassian.net --email me@co.com --token XXXX --project PROJ --location user
+  jira-client.sh init --domain myco.atlassian.net --email me@co.com --project PROJ --token-stdin <<< "\$TOKEN"
+  JIRA_API_TOKEN=XXX jira-client.sh init --domain myco.atlassian.net --email me@co.com --project PROJ
   jira-client.sh create PROJ "Fix login bug" "Users can't login" Bug
   jira-client.sh list PROJ "In Progress"
   jira-client.sh transition PROJ-123 31
@@ -821,9 +843,11 @@ Environment Variables:
   JIRA_API_TOKEN        API token from Atlassian
   JIRA_PROJECT          Default project key
 
-Security Note:
-  Passing --token via CLI args exposes it in process list and shell history.
-  Prefer setting JIRA_API_TOKEN env var or using interactive mode for sensitive tokens.
+Token Methods (most secure first):
+  1. Interactive mode: prompted securely (hidden input)
+  2. --token-stdin: pipe from secret manager (e.g., echo "\$TOKEN" | jira-client.sh init --token-stdin ...)
+  3. JIRA_API_TOKEN env var: set before running init (not logged in history)
+  4. --token flag: visible in process list and shell history (least secure)
 EOF
 }
 
