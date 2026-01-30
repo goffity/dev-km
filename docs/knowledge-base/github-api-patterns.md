@@ -27,10 +27,35 @@
 
 ## The Solution
 
-### Pattern: Discussion Comments (GraphQL)
+### Pattern: Discussion Management (GraphQL)
+
+GitHub Discussions ใช้ GraphQL API เท่านั้น (REST ไม่รองรับ)
+
+#### List Discussions
 
 ```bash
-# 1. Get Discussion ID
+# List all discussions with status
+gh api graphql -f query='
+query {
+  repository(owner: "owner", name: "repo") {
+    discussions(first: 20) {
+      nodes {
+        id
+        number
+        title
+        closed
+        isAnswered
+        category { name }
+      }
+    }
+  }
+}' --jq '.data.repository.discussions.nodes[] |
+  "\(.number). \(.title) [\(if .closed then "CLOSED" else "OPEN" end)] \(if .isAnswered then "✓ Answered" else "" end)"'
+```
+
+#### Get Discussion ID
+
+```bash
 DISCUSSION_ID=$(gh api graphql -f query='
 query {
   repository(owner: "owner", name: "repo") {
@@ -39,8 +64,11 @@ query {
     }
   }
 }' --jq '.data.repository.discussion.id')
+```
 
-# 2. Add Comment
+#### Add Comment to Discussion
+
+```bash
 # Escape content for JSON (avoid useless use of cat)
 BODY=$(jq -Rs . < content.md)
 
@@ -53,6 +81,64 @@ mutation {
     comment { id url }
   }
 }"
+```
+
+#### Close Discussion
+
+```bash
+# Close with reason: RESOLVED, OUTDATED, or DUPLICATE
+gh api graphql -f query='
+mutation {
+  closeDiscussion(input: {
+    discussionId: "D_kwDOxxxxxx",
+    reason: RESOLVED
+  }) {
+    discussion {
+      id
+      number
+      closed
+      closedAt
+    }
+  }
+}'
+```
+
+**Close Reasons:**
+
+| Reason | When to Use |
+|--------|-------------|
+| `RESOLVED` | คำถามได้รับคำตอบแล้ว / ปัญหาแก้ไขแล้ว |
+| `OUTDATED` | ไม่เกี่ยวข้องแล้ว / เวอร์ชันเก่า |
+| `DUPLICATE` | ซ้ำกับ discussion อื่น |
+
+#### Reopen Discussion
+
+```bash
+gh api graphql -f query='
+mutation {
+  reopenDiscussion(input: {
+    discussionId: "D_kwDOxxxxxx"
+  }) {
+    discussion { closed }
+  }
+}'
+```
+
+#### Mark Answer (Q&A category only)
+
+```bash
+# Mark a comment as the answer
+gh api graphql -f query='
+mutation {
+  markDiscussionCommentAsAnswer(input: {
+    id: "DC_kwDOxxxxxx"
+  }) {
+    discussion {
+      isAnswered
+      answer { body }
+    }
+  }
+}'
 ```
 
 ### Pattern: Milestones (REST API)
@@ -123,6 +209,59 @@ gh auth refresh -s project,read:project,read:org
 
 ---
 
+## Troubleshooting
+
+### ปัญหาที่พบบ่อยและวิธีแก้ไข
+
+| ปัญหา | สาเหตุ | วิธีแก้ |
+|-------|--------|--------|
+| `404 Not Found` เมื่อเรียก Discussion API | ใช้ REST แทน GraphQL | ใช้ `gh api graphql` แทน |
+| `Resource not accessible` (read) | Token scope ไม่พอสำหรับอ่าน | `gh auth refresh -s read:discussion` |
+| `Resource not accessible` (write) | Token scope ไม่พอสำหรับ mutation | `gh auth refresh -s write:discussion` |
+| `Could not resolve to a Discussion` | Discussion ID ผิด | ใช้ GraphQL query หา ID ก่อน |
+| `null` response จาก mutation | Permission หรือ state ไม่ถูกต้อง | ตรวจสอบว่า discussion ยังเปิดอยู่ |
+| Shell injection ใน JSON body | ใช้ string interpolation | ใช้ `jq --arg` หรือ `-F body=@file` |
+
+**Token Scopes for Discussions:**
+
+| Operation | Required Scope |
+|-----------|----------------|
+| List/Query discussions | `read:discussion` |
+| Add comment | `write:discussion` |
+| Close/Reopen discussion | `write:discussion` |
+| Mark as answer | `write:discussion` |
+
+### วิธีตรวจสอบปัญหา
+
+```bash
+# 1. ตรวจสอบ token scopes
+gh auth status
+
+# 2. ตรวจสอบ discussion state
+gh api graphql -f query='
+query {
+  repository(owner: "owner", name: "repo") {
+    discussion(number: 36) {
+      id
+      closed
+      isAnswered
+      locked
+    }
+  }
+}'
+
+# 3. ทดสอบ API access
+gh api graphql -f query='query { viewer { login } }'
+```
+
+### เมื่อ Close Discussion ไม่ได้
+
+1. **ตรวจสอบว่าเป็น maintainer/owner** - ต้องมี write access
+2. **ตรวจสอบว่า discussion ไม่ locked** - locked discussions ต้อง unlock ก่อน
+3. **ใช้ Discussion ID ที่ถูกต้อง** - ต้องเป็น node ID (เริ่มด้วย `D_kw...`)
+
+---
+
 ## Anti-Patterns
 
 | Don't Do This | Do This Instead |
@@ -131,6 +270,7 @@ gh auth refresh -s project,read:project,read:org
 | `-f body="$var"` with user content | `-F body=@file` or `jq --arg` |
 | Assume token has all scopes | Check `gh auth status` first |
 | `gh pr view --json reviews` without scope | Handle scope errors gracefully |
+| Leave answered discussions open | Close with `reason: RESOLVED` |
 
 ---
 
@@ -150,7 +290,8 @@ gh auth refresh -s project,read:project,read:org
 ## When to Apply
 
 ### Use GraphQL
-- GitHub Discussions (comments, mutations)
+- **GitHub Discussions** - ทุก operation (list, comment, close, reopen)
+- **PR Review Threads** - resolve/unresolve threads
 - GitHub Projects V2
 - Complex queries with relationships
 - When REST endpoint doesn't exist
@@ -163,8 +304,25 @@ gh auth refresh -s project,read:project,read:org
 
 ### Use `gh` CLI Shortcuts
 - `gh issue`, `gh pr` - Built-in commands
-- `gh api` - Direct API access
+- `gh api` - Direct REST API access
 - `gh api graphql` - GraphQL queries
+
+### Discussion Lifecycle
+
+```
+Created → Open → Answered → Closed (RESOLVED)
+                    ↓
+              Not Answered → Closed (OUTDATED/DUPLICATE)
+                    ↓
+                 Reopen ←←←←←←←←←←←←←←←←←←←←
+```
+
+| State | Action Available |
+|-------|------------------|
+| Open + Not Answered | Comment, Close, Lock |
+| Open + Answered | Close (RESOLVED), Comment |
+| Closed | Reopen, Comment |
+| Locked | Unlock (admin only) |
 
 ---
 
@@ -172,10 +330,15 @@ gh auth refresh -s project,read:project,read:org
 
 | Task | Command |
 |------|---------|
-| Discussion comment | `gh api graphql -f query='mutation {...}'` |
+| List discussions | `gh api graphql -f query='query { repository(...) { discussions(...) } }'` |
+| Add discussion comment | `gh api graphql -f query='mutation { addDiscussionComment(...) }'` |
+| Close discussion | `gh api graphql -f query='mutation { closeDiscussion(input: {discussionId: "...", reason: RESOLVED}) }'` |
+| Reopen discussion | `gh api graphql -f query='mutation { reopenDiscussion(...) }'` |
+| Mark as answer | `gh api graphql -f query='mutation { markDiscussionCommentAsAnswer(...) }'` |
 | Create milestone | `gh api repos/:owner/:repo/milestones --method POST` |
 | PR review comments | `gh api repos/.../pulls/.../comments` |
-| Reply to comment | `gh api .../comments/{id}/replies -f body="..."` |
+| Reply to PR comment | `gh api .../comments/{id}/replies -f body="..."` |
+| Resolve PR thread | `gh api graphql -f query='mutation { resolveReviewThread(...) }'` |
 | Check token scopes | `gh auth status` |
 | Add scopes | `gh auth refresh -s scope1,scope2` |
 

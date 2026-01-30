@@ -42,3 +42,4 @@
 2026-01-23 15:25 | completed | Fix JSON array format handling in PR polling (#78)
 2026-01-23 16:54 | completed | Clear all open issues - 14 issues closed, 11 PRs merged (#72-#90)
 2026-01-31 00:29 | working | Add resolve conversation step to /pr-review (#94)
+2026-01-31 01:11 | completed | Add resolve conversation step to /pr-review (#94) - PR #95 merged
