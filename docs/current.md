@@ -1,4 +1,5 @@
-STATE: completed
-TASK: Clear all open issues (14 issues, 11 PRs)
-SINCE: 2026-01-23 16:53
-ISSUE: #72
+STATE: working
+TASK: Add resolve conversation step to /pr-review after reply
+SINCE: 2026-01-31 00:29
+ISSUE: #94
+BRANCH: feat/94-pr-review-resolve-conversation

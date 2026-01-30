@@ -220,24 +220,160 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 | "Documentation could be improved" | `docs: improve documentation for [feature]` | `enhancement` |
 | "Performance could be better" | `perf: optimize [operation]` | `enhancement` |
 
-**Example - Multiple Comments:**
+#### 6.6 Resolve Conversation After Reply
+
+**IMPORTANT:** หลังจาก reply ไปที่ comment แล้ว ให้ resolve conversation ทันที
 
 ```bash
-# หลัง commit แก้ไขแล้ว - เก็บ hash
+# Helper function: Get thread_id from comment_id (with pagination)
+# Note: Supports PRs with >100 review threads
+get_thread_id_for_comment() {
+    local owner="$1"
+    local repo="$2"
+    local pr_number="$3"
+    local comment_id="$4"
+    local cursor=""
+    local thread_id=""
+
+    while [[ -z "$thread_id" ]]; do
+        local cursor_arg=""
+        if [[ -n "$cursor" && "$cursor" != "null" ]]; then
+            cursor_arg="-f cursor=$cursor"
+        fi
+
+        # shellcheck disable=SC2086
+        local result=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
+                repository(owner: $owner, name: $repo) {
+                    pullRequest(number: $pr) {
+                        reviewThreads(first: 100, after: $cursor) {
+                            pageInfo {
+                                hasNextPage
+                                endCursor
+                            }
+                            nodes {
+                                id
+                                isResolved
+                                comments(first: 1) {
+                                    nodes {
+                                        databaseId
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" $cursor_arg)
+
+        # Find thread_id using --argjson for safe variable passing
+        thread_id=$(echo "$result" | jq -r --argjson commentId "$comment_id" '
+            .data.repository.pullRequest.reviewThreads.nodes[] |
+            select(.comments.nodes[0].databaseId == $commentId) | .id // empty
+        ')
+
+        # Check for more pages
+        local has_next=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')
+        cursor=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor')
+
+        if [[ "$has_next" != "true" || -z "$cursor" || "$cursor" == "null" ]]; then
+            break
+        fi
+    done
+
+    echo "$thread_id"
+}
+
+# Helper function: Resolve thread by ID
+resolve_thread() {
+    local thread_id="$1"
+
+    if [[ -z "$thread_id" ]]; then
+        echo "Warning: No thread_id provided, skipping resolve"
+        return 1
+    fi
+
+    gh api graphql -f query='
+        mutation($threadId: ID!) {
+            resolveReviewThread(input: {threadId: $threadId}) {
+                thread {
+                    id
+                    isResolved
+                }
+            }
+        }
+    ' -f threadId="$thread_id" --jq '.data.resolveReviewThread.thread.isResolved'
+}
+```
+
+**Usage - Resolve หลัง reply:**
+
+```bash
+# 1. Reply to comment (ตาม 6.1-6.5)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+  -f body="Fixed in ${COMMIT_HASH}! [description]"
+
+# 2. Get thread_id และ resolve ทันที
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+if [[ -n "$THREAD_ID" ]]; then
+    resolve_thread "$THREAD_ID" && echo "✓ Resolved thread for comment $comment_id"
+else
+    echo "→ Could not find thread for comment $comment_id (may already be resolved)"
+fi
+```
+
+**When to resolve:**
+
+| Comment Type | Resolve? | Reason |
+|--------------|----------|--------|
+| Fixed (6.1) | ✅ Yes | Work is done |
+| Won't fix (6.2) | ✅ Yes | Decision made, explained |
+| Question answered (6.3) | ✅ Yes | Question addressed |
+| Praise acknowledged (6.4) | ✅ Yes | No action needed |
+| Deferred with issue (6.5) | ✅ Yes | Tracked in issue |
+
+**When NOT to resolve:**
+
+- Reviewer explicitly asks to verify before resolving
+- Ongoing discussion (multiple back-and-forth)
+- Blocking concern that needs approval
+
+**Error handling:**
+
+```bash
+# Handle permission errors gracefully
+resolve_thread "$THREAD_ID" 2>/dev/null || echo "→ Could not resolve (permission or already resolved)"
+```
+
+**Example - Multiple Comments (with resolve):**
+
+```bash
+# Setup
+OWNER="owner"
+REPO="repo"
+PR_NUMBER=42
 COMMIT_HASH=$(git rev-parse --short HEAD)  # e.g., ce97912
 
 # Comment 1: ต้องแก้ไข (comment_id: 123)
-# ใช้ heredoc เพื่อป้องกัน shell injection
-gh api repos/owner/repo/pulls/42/comments/123/replies \
+gh api repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments/123/replies \
   -f body="Fixed in $COMMIT_HASH! Changed context.Background() to context.WithTimeout(ctx, 30*time.Second)"
+# Resolve immediately
+THREAD_ID=$(get_thread_id_for_comment "$OWNER" "$REPO" "$PR_NUMBER" 123)
+resolve_thread "$THREAD_ID" && echo "✓ Resolved comment 123"
 
 # Comment 2: ไม่แก้ไข (comment_id: 124)
-gh api repos/owner/repo/pulls/42/comments/124/replies \
+gh api repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments/124/replies \
   -f body="Good point! However, I kept this approach because..."
+# Resolve - decision made
+THREAD_ID=$(get_thread_id_for_comment "$OWNER" "$REPO" "$PR_NUMBER" 124)
+resolve_thread "$THREAD_ID" && echo "✓ Resolved comment 124"
 
 # Comment 3: คำถาม (comment_id: 125)
-gh api repos/owner/repo/pulls/42/comments/125/replies \
+gh api repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments/125/replies \
   -f body="Yes, this handles the edge case by..."
+# Resolve - question answered
+THREAD_ID=$(get_thread_id_for_comment "$OWNER" "$REPO" "$PR_NUMBER" 125)
+resolve_thread "$THREAD_ID" && echo "✓ Resolved comment 125"
 
 # Comment 4: Defer - สร้าง issue ก่อน แล้ว reply (comment_id: 126)
 DEFER_ISSUE=$(gh issue create \
@@ -246,8 +382,11 @@ DEFER_ISSUE=$(gh issue create \
   --body "From PR #42 review by @senior-dev..." \
   --json number -q .number)
 
-gh api repos/owner/repo/pulls/42/comments/126/replies \
+gh api repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments/126/replies \
   -f body="Thanks for the feedback! Created #$DEFER_ISSUE to track this work."
+# Resolve - tracked in issue
+THREAD_ID=$(get_thread_id_for_comment "$OWNER" "$REPO" "$PR_NUMBER" 126)
+resolve_thread "$THREAD_ID" && echo "✓ Resolved comment 126"
 ```
 
 ### Step 7: Update Related Issues
@@ -330,9 +469,37 @@ tags: [relevant-tags]
 - Issue: [url if any]
 ```
 
-### Step 9: Auto-Resolve Addressed Comments
+### Step 9: Verify All Threads Resolved (Fallback)
 
-After addressing each comment, resolve the review thread to mark it as done:
+**Note:** Primary resolve happens inline in Step 6.6. This step is for verification and catching any missed threads.
+
+```bash
+# Quick check: any unresolved threads?
+check_unresolved_threads() {
+    local owner="$1"
+    local repo="$2"
+    local pr_number="$3"
+
+    local count=$(gh api graphql -f query='
+        query($owner: String!, $repo: String!, $pr: Int!) {
+            repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                    reviewThreads(first: 100) {
+                        nodes {
+                            isResolved
+                        }
+                    }
+                }
+            }
+        }
+    ' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" \
+      --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')
+
+    echo "$count unresolved threads"
+}
+```
+
+For batch operations or resolving missed threads:
 
 ```bash
 # Get thread ID from comment ID using GraphQL (with pagination)
@@ -420,24 +587,32 @@ resolve_thread() {
 - If there's ongoing discussion
 - If the comment is a blocking concern
 
-**Example - Resolve after addressing:**
+**Example - Inline resolve (preferred, see Step 6.6):**
 
 ```bash
-# 1. First, reply to the comment
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+# Reply and resolve in one flow (using helpers from Step 6.6)
+OWNER="owner"
+REPO="repo"
+PR_NUMBER=42
+COMMENT_ID=123
+
+# 1. Reply to the comment
+gh api repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments/$COMMENT_ID/replies \
   -f body="Fixed in abc1234! Changed to use context.WithTimeout"
 
-# 2. Then resolve the thread
-# Find thread_id that contains comment_id, then:
-gh api graphql -f query='
-    mutation($threadId: ID!) {
-        resolveReviewThread(input: {threadId: $threadId}) {
-            thread { isResolved }
-        }
-    }
-' -f threadId="THREAD_ID_HERE"
+# 2. Resolve immediately using helper
+THREAD_ID=$(get_thread_id_for_comment "$OWNER" "$REPO" "$PR_NUMBER" "$COMMENT_ID")
+resolve_thread "$THREAD_ID" && echo "✓ Thread resolved"
+```
 
-echo "Thread resolved"
+**Example - Batch verify unresolved:**
+
+```bash
+# Check if any threads were missed
+check_unresolved_threads "$OWNER" "$REPO" "$PR_NUMBER"
+# Output: "2 unresolved threads"
+
+# If needed, resolve remaining threads manually or investigate why they weren't resolved
 ```
 
 ### Step 10: Push Changes
@@ -545,21 +720,25 @@ Found 1 open PR with reviews:
 - Changed `context.Background()` to `context.WithTimeout(ctx, 30*time.Second)`
 - Commit: `ce97912`
 - Replied: "Fixed in ce97912! Added 30-second timeout for database operations"
+- Thread: ✓ Resolved
 
 #### Comment 2: Error message
 - Status: **Fixed**
 - Updated error message to include user ID and operation
 - Commit: `ce97912` *(same commit as Comment 1 - both fixes were made together)*
 - Replied: "Fixed in ce97912! Error now includes: user ID, operation type, and original error"
+- Thread: ✓ Resolved
 
 #### Comment 3: Missing tests
 - Status: **Deferred**
 - Created issue: #45 "test: add unit tests for auth handler"
 - Replied: "Thanks for the feedback! Created #45 to track this work."
+- Thread: ✓ Resolved
 
 #### Comment 4: Praise
 - Status: **Acknowledged**
 - Replied: "Thank you! Appreciate the review"
+- Thread: ✓ Resolved
 
 ### Deferred Items
 | Issue | Title |
