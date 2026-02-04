@@ -331,6 +331,96 @@ else . end) |
 }
 
 # =============================================================================
+# Issue Templates
+# =============================================================================
+
+# Generate Story/Epic template markdown
+generate_story_template() {
+    local overview="${1:-}"
+    local requirements="${2:-}"
+    local system_flow="${3:-}"
+    local subtask_deps="${4:-}"
+    local acceptance="${5:-}"
+    local dod="${6:-}"
+    local test_scenarios="${7:-}"
+
+    cat << EOF
+## Overview
+
+${overview:-[อธิบายสั้นๆ ว่าทำอะไร]}
+
+## Requirements
+
+${requirements:-[รายละเอียดความต้องการ]}
+
+## System Flow
+
+\`\`\`
+${system_flow:-[ASCII art หรือ flow diagram]}
+\`\`\`
+
+## Subtask Dependencies
+
+\`\`\`
+${subtask_deps:-[dependency tree แสดงลำดับการทำงาน]}
+\`\`\`
+
+## Acceptance Criteria
+
+### Functional Requirements
+${acceptance:-[Functional requirements]}
+
+### Admin Requirements
+- [ ] Admin UI updated
+- [ ] Configuration options available
+
+### Logging Requirements
+- [ ] Events logged properly
+- [ ] Error tracking configured
+
+## Definition of Done (DoD)
+
+- [ ] Code reviewed and approved
+- [ ] Unit tests passing
+- [ ] Integration tests passing
+- [ ] Documentation updated
+- [ ] Deployed to staging
+
+## Test Scenarios
+
+${test_scenarios:-[Test cases สำหรับ QA]}
+EOF
+}
+
+# Generate Subtask template markdown
+generate_subtask_template() {
+    local scope="${1:-}"
+    local blocked_by="${2:-}"
+    local blocks="${3:-}"
+    local tasks="${4:-}"
+    local acceptance="${5:-}"
+
+    cat << EOF
+## Scope
+
+${scope:-[อธิบายว่า subtask นี้ทำอะไร]}
+
+## Dependencies
+
+**Blocked by:** ${blocked_by:-None}
+**Blocks:** ${blocks:-None}
+
+## Tasks
+
+${tasks:-[รายละเอียดงาน พร้อม file locations และ code snippets]}
+
+## Acceptance Criteria
+
+${acceptance:-[Checklist สำหรับ verify]}
+EOF
+}
+
+# =============================================================================
 # API Helper Functions
 # =============================================================================
 
@@ -1011,6 +1101,349 @@ cmd_assign() {
     fi
 }
 
+# Add labels to issue
+cmd_add_labels() {
+    validate_config || return 1
+
+    local issue_key="$1"
+    shift
+    local labels=("$@")
+
+    if [[ -z "$issue_key" ]] || [[ ${#labels[@]} -eq 0 ]]; then
+        echo "Usage: jira-client.sh add-labels <issue_key> <label1> [label2] ..." >&2
+        return 1
+    fi
+
+    validate_issue_key "$issue_key" || return 1
+
+    # Build labels array for API
+    local labels_json
+    labels_json=$(printf '%s\n' "${labels[@]}" | jq -R . | jq -s '.')
+
+    local payload
+    payload=$(jq -n --argjson labels "$labels_json" '{
+        update: {
+            labels: [{ add: $labels[] }]
+        }
+    }' | jq -c '{update: {labels: [.update.labels[].add | {add: .}]}}')
+
+    local result
+    result=$(jira_api PUT "/issue/$issue_key" "$payload")
+
+    if [[ -z "$result" ]]; then
+        echo "Labels added to $issue_key: ${labels[*]}"
+    else
+        echo "Failed to add labels:" >&2
+        echo "$result" | jq -r '.errors // .errorMessages[]?' 2>/dev/null || echo "$result" >&2
+        return 1
+    fi
+}
+
+# Create issue link (dependency)
+cmd_link() {
+    validate_config || return 1
+
+    local link_type="$1"
+    local from_key="$2"
+    local to_key="$3"
+
+    if [[ -z "$link_type" ]] || [[ -z "$from_key" ]] || [[ -z "$to_key" ]]; then
+        echo "Usage: jira-client.sh link <type> <from_key> <to_key>" >&2
+        echo "" >&2
+        echo "Link types:" >&2
+        echo "  blocks     - from_key blocks to_key" >&2
+        echo "  blocked-by - from_key is blocked by to_key" >&2
+        echo "  relates    - from_key relates to to_key" >&2
+        return 1
+    fi
+
+    validate_issue_key "$from_key" || return 1
+    validate_issue_key "$to_key" || return 1
+
+    # Map friendly names to Jira link type names
+    local jira_link_type
+    local inward_key outward_key
+    case "$link_type" in
+        blocks)
+            jira_link_type="Blocks"
+            outward_key="$from_key"
+            inward_key="$to_key"
+            ;;
+        blocked-by)
+            jira_link_type="Blocks"
+            outward_key="$to_key"
+            inward_key="$from_key"
+            ;;
+        relates|relates-to)
+            jira_link_type="Relates"
+            outward_key="$from_key"
+            inward_key="$to_key"
+            ;;
+        *)
+            # Assume it's a direct Jira link type name
+            jira_link_type="$link_type"
+            outward_key="$from_key"
+            inward_key="$to_key"
+            ;;
+    esac
+
+    local payload
+    payload=$(jq -n \
+        --arg type "$jira_link_type" \
+        --arg inward "$inward_key" \
+        --arg outward "$outward_key" \
+        '{
+            type: { name: $type },
+            inwardIssue: { key: $inward },
+            outwardIssue: { key: $outward }
+        }')
+
+    local result
+    result=$(jira_api POST "/issueLink" "$payload")
+
+    if [[ -z "$result" ]]; then
+        echo "Link created: $from_key $link_type $to_key"
+    else
+        echo "Failed to create link:" >&2
+        echo "$result" | jq -r '.errors // .errorMessages[]?' 2>/dev/null || echo "$result" >&2
+        return 1
+    fi
+}
+
+# Create Story with template
+cmd_create_story() {
+    validate_config || return 1
+
+    local project="" summary="" labels_str="" due_date=""
+
+    # Parse arguments
+    local positional=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --labels)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --labels requires a value" >&2; return 1; }
+                labels_str="$2"; shift 2 ;;
+            --due)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --due requires a date (YYYY-MM-DD)" >&2; return 1; }
+                due_date="$2"; shift 2 ;;
+            *)
+                positional+=("$1"); shift ;;
+        esac
+    done
+
+    project="${positional[0]:-$JIRA_PROJECT}"
+    summary="${positional[1]:-}"
+
+    if [[ -z "$project" ]] || [[ -z "$summary" ]]; then
+        echo "Usage: jira-client.sh create-story <project> <summary> [--labels label1,label2] [--due YYYY-MM-DD]" >&2
+        return 1
+    fi
+
+    # Generate template description
+    local description
+    description=$(generate_story_template)
+
+    # Build payload
+    local adf_description
+    adf_description=$(markdown_to_adf "$description")
+
+    local payload
+    payload=$(jq -n \
+        --arg project "$project" \
+        --arg summary "$summary" \
+        --argjson description "$adf_description" \
+        --arg due_date "$due_date" \
+        '{
+            fields: {
+                project: { key: $project },
+                summary: $summary,
+                description: $description,
+                issuetype: { name: "Story" }
+            }
+        } | if $due_date != "" then .fields.duedate = $due_date else . end')
+
+    local result
+    result=$(jira_api POST "/issue" "$payload")
+
+    if echo "$result" | jq -e '.key' > /dev/null 2>&1; then
+        local key
+        key=$(echo "$result" | jq -r '.key')
+        echo "Created Story: $key" >&2
+        echo "URL: https://${JIRA_DOMAIN}/browse/$key" >&2
+
+        # Add labels if specified
+        if [[ -n "$labels_str" ]]; then
+            IFS=',' read -ra labels_arr <<< "$labels_str"
+            cmd_add_labels "$key" "${labels_arr[@]}"
+        fi
+
+        echo "$key"
+    else
+        echo "Failed to create story:" >&2
+        echo "$result" | jq -r '.errors // .errorMessages[]?' 2>/dev/null || echo "$result" >&2
+        return 1
+    fi
+}
+
+# Create Epic with template
+cmd_create_epic() {
+    validate_config || return 1
+
+    local project="" summary="" labels_str="" due_date=""
+
+    # Parse arguments
+    local positional=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --labels)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --labels requires a value" >&2; return 1; }
+                labels_str="$2"; shift 2 ;;
+            --due)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --due requires a date (YYYY-MM-DD)" >&2; return 1; }
+                due_date="$2"; shift 2 ;;
+            *)
+                positional+=("$1"); shift ;;
+        esac
+    done
+
+    project="${positional[0]:-$JIRA_PROJECT}"
+    summary="${positional[1]:-}"
+
+    if [[ -z "$project" ]] || [[ -z "$summary" ]]; then
+        echo "Usage: jira-client.sh create-epic <project> <summary> [--labels label1,label2] [--due YYYY-MM-DD]" >&2
+        return 1
+    fi
+
+    # Generate template description
+    local description
+    description=$(generate_story_template)
+
+    # Build payload
+    local adf_description
+    adf_description=$(markdown_to_adf "$description")
+
+    local payload
+    payload=$(jq -n \
+        --arg project "$project" \
+        --arg summary "$summary" \
+        --argjson description "$adf_description" \
+        --arg due_date "$due_date" \
+        '{
+            fields: {
+                project: { key: $project },
+                summary: $summary,
+                description: $description,
+                issuetype: { name: "Epic" }
+            }
+        } | if $due_date != "" then .fields.duedate = $due_date else . end')
+
+    local result
+    result=$(jira_api POST "/issue" "$payload")
+
+    if echo "$result" | jq -e '.key' > /dev/null 2>&1; then
+        local key
+        key=$(echo "$result" | jq -r '.key')
+        echo "Created Epic: $key" >&2
+        echo "URL: https://${JIRA_DOMAIN}/browse/$key" >&2
+
+        # Add labels if specified
+        if [[ -n "$labels_str" ]]; then
+            IFS=',' read -ra labels_arr <<< "$labels_str"
+            cmd_add_labels "$key" "${labels_arr[@]}"
+        fi
+
+        echo "$key"
+    else
+        echo "Failed to create epic:" >&2
+        echo "$result" | jq -r '.errors // .errorMessages[]?' 2>/dev/null || echo "$result" >&2
+        return 1
+    fi
+}
+
+# Create subtask with template (enhanced version)
+cmd_create_subtask_templated() {
+    validate_config || return 1
+
+    local parent_key="" summary="" labels_str="" due_date="" blocked_by="" blocks=""
+
+    # Parse arguments
+    local positional=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --labels)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --labels requires a value" >&2; return 1; }
+                labels_str="$2"; shift 2 ;;
+            --due)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --due requires a date (YYYY-MM-DD)" >&2; return 1; }
+                due_date="$2"; shift 2 ;;
+            --blocked-by)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --blocked-by requires issue keys" >&2; return 1; }
+                blocked_by="$2"; shift 2 ;;
+            --blocks)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --blocks requires issue keys" >&2; return 1; }
+                blocks="$2"; shift 2 ;;
+            *)
+                positional+=("$1"); shift ;;
+        esac
+    done
+
+    parent_key="${positional[0]:-}"
+    summary="${positional[1]:-}"
+
+    if [[ -z "$parent_key" ]] || [[ -z "$summary" ]]; then
+        echo "Usage: jira-client.sh create-subtask-templated <parent-key> <summary> [options]" >&2
+        echo "" >&2
+        echo "Options:" >&2
+        echo "  --labels label1,label2    Add labels" >&2
+        echo "  --due YYYY-MM-DD          Set due date" >&2
+        echo "  --blocked-by KEY1,KEY2    Create 'blocked by' links" >&2
+        echo "  --blocks KEY1,KEY2        Create 'blocks' links" >&2
+        return 1
+    fi
+
+    validate_issue_key "$parent_key" || return 1
+
+    # Generate template description
+    local description
+    description=$(generate_subtask_template "" "$blocked_by" "$blocks")
+
+    # Create subtask using array for proper argument handling
+    local create_args=("$parent_key" "$summary" "$description")
+    if [[ -n "$due_date" ]]; then
+        create_args+=(--due "$due_date")
+    fi
+
+    local key
+    key=$(cmd_create_subtask "${create_args[@]}")
+
+    if [[ -z "$key" ]]; then
+        return 1
+    fi
+
+    # Add labels if specified
+    if [[ -n "$labels_str" ]]; then
+        IFS=',' read -ra labels_arr <<< "$labels_str"
+        cmd_add_labels "$key" "${labels_arr[@]}"
+    fi
+
+    # Create dependency links
+    if [[ -n "$blocked_by" ]]; then
+        IFS=',' read -ra blocked_arr <<< "$blocked_by"
+        for blocker in "${blocked_arr[@]}"; do
+            cmd_link "blocked-by" "$key" "$blocker"
+        done
+    fi
+
+    if [[ -n "$blocks" ]]; then
+        IFS=',' read -ra blocks_arr <<< "$blocks"
+        for blocked in "${blocks_arr[@]}"; do
+            cmd_link "blocks" "$key" "$blocked"
+        done
+    fi
+
+    echo "$key"
+}
+
 # Get my assigned issues
 cmd_my_issues() {
     validate_config || return 1
@@ -1107,8 +1540,15 @@ Configuration Commands:
 Issue Commands:
   create <project> <summary> [description] [type] [--assign me|accountId]
                         Create new issue (auto-assigns via prefix mapping)
+  create-story <project> <summary> [--labels L1,L2] [--due YYYY-MM-DD]
+                        Create Story with standard template
+  create-epic <project> <summary> [--labels L1,L2] [--due YYYY-MM-DD]
+                        Create Epic with standard template
   create-subtask <parent-key> <summary> [description] [--due YYYY-MM-DD] [--assign me|accountId]
                         Create subtask under parent issue
+  create-subtask-templated <parent-key> <summary> [options]
+                        Create subtask with template and dependency links
+                        Options: --labels, --due, --blocked-by, --blocks
   create-subtasks <parent-key> <file.json>
                         Batch create subtasks from JSON file
   get <issue_key>       Get issue details
@@ -1125,6 +1565,12 @@ Status Commands:
   transition <issue_key> <transition_id>
                         Transition issue to new status
 
+Link & Label Commands:
+  add-labels <issue_key> <label1> [label2] ...
+                        Add labels to an issue
+  link <type> <from_key> <to_key>
+                        Create issue link (blocks, blocked-by, relates)
+
 Other Commands:
   comment <issue_key> <comment>
                         Add comment to issue
@@ -1132,6 +1578,17 @@ Other Commands:
                         Assign issue (me=self, -1=unassign)
   users [project]       List assignable users with accountId
   projects              List available projects
+
+Issue Templates:
+  Story/Epic template sections:
+    - Overview, Requirements, System Flow
+    - Subtask Dependencies, Acceptance Criteria
+    - Definition of Done (DoD), Test Scenarios
+
+  Subtask template sections:
+    - Scope, Dependencies (Blocked by / Blocks)
+    - Tasks (with file locations, code snippets)
+    - Acceptance Criteria
 
 Examples:
   jira-client.sh init
@@ -1141,8 +1598,13 @@ Examples:
   jira-client.sh init --domain myco.atlassian.net --email me@co.com --token X --project P --location env
   jira-client.sh create PROJ "Fix login bug" "Users can't login" Bug
   jira-client.sh create PROJ "[api] Add endpoint" "Details" Task --assign me
+  jira-client.sh create-story PROJ "New feature" --labels Backend,Player --due 2026-02-14
+  jira-client.sh create-epic PROJ "Big initiative" --labels Backend
   jira-client.sh create-subtask PROJ-123 "[api] Implement handler" "## Details" --due 2026-02-10
+  jira-client.sh create-subtask-templated PROJ-123 "Phase 1: Data Models" --labels Backend --blocked-by PROJ-120
   jira-client.sh create-subtasks PROJ-123 subtasks.json
+  jira-client.sh add-labels PROJ-123 Backend Player
+  jira-client.sh link blocks PROJ-124 PROJ-125
   jira-client.sh users PROJ
   jira-client.sh list PROJ "In Progress"
   jira-client.sh transition PROJ-123 31
@@ -1188,7 +1650,10 @@ main() {
         status)      cmd_status "$@" ;;
         projects)    cmd_projects "$@" ;;
         create)      cmd_create "$@" ;;
+        create-story)    cmd_create_story "$@" ;;
+        create-epic)     cmd_create_epic "$@" ;;
         create-subtask)  cmd_create_subtask "$@" ;;
+        create-subtask-templated) cmd_create_subtask_templated "$@" ;;
         create-subtasks) cmd_create_subtasks "$@" ;;
         get)         cmd_get "$@" ;;
         list)        cmd_list "$@" ;;
@@ -1198,6 +1663,8 @@ main() {
         transition)  cmd_transition "$@" ;;
         comment)     cmd_comment "$@" ;;
         assign)      cmd_assign "$@" ;;
+        add-labels)  cmd_add_labels "$@" ;;
+        link)        cmd_link "$@" ;;
         users)       cmd_users "$@" ;;
         *)
             echo "Unknown command: $command" >&2

@@ -22,10 +22,15 @@ description: Jira integration - create, list, fetch, and manage Jira issues
 | `/jira my` | แสดง issues ที่ assign ให้ฉัน |
 | `/jira get <key>` | ดู issue details |
 | `/jira create` | สร้าง issue ใหม่ |
+| `/jira create-story` | สร้าง Story พร้อม template |
+| `/jira create-epic` | สร้าง Epic พร้อม template |
+| `/jira create-subtask-templated` | สร้าง Subtask พร้อม template และ dependency links |
 | `/jira search <query>` | ค้นหา issues |
 | `/jira transitions <key>` | ดู transitions ที่ทำได้ |
 | `/jira transition <key> <id>` | เปลี่ยน status ด้วย transition ID |
 | `/jira comment <key>` | เพิ่ม comment |
+| `/jira add-labels <key>` | เพิ่ม labels |
+| `/jira link <type>` | สร้าง dependency link |
 
 ## Instructions
 
@@ -149,6 +154,87 @@ Type: [type]
 
 ใช้ /focus แล้วเลือก "Jira (existing)" เพื่อเริ่มทำงาน
 ```
+
+### Command: create-story
+
+สร้าง Story พร้อม standard template
+
+```bash
+./scripts/jira-client.sh create-story PROJ "Feature summary" --labels Backend,Player --due 2026-02-14
+```
+
+**Template Sections:**
+- Overview - อธิบายสั้นๆ ว่าทำอะไร
+- Requirements - รายละเอียดความต้องการ
+- System Flow - flow diagram (ASCII art)
+- Subtask Dependencies - dependency tree
+- Acceptance Criteria - functional, admin, logging requirements
+- Definition of Done (DoD) - checklist
+- Test Scenarios - test cases สำหรับ QA
+
+**Options:**
+- `--labels L1,L2` - เพิ่ม labels (comma-separated)
+- `--due YYYY-MM-DD` - กำหนด due date
+
+### Command: create-epic
+
+สร้าง Epic พร้อม standard template (same as Story)
+
+```bash
+./scripts/jira-client.sh create-epic PROJ "Epic summary" --labels Backend --due 2026-02-28
+```
+
+### Command: create-subtask-templated
+
+สร้าง Subtask พร้อม template และ dependency links
+
+```bash
+./scripts/jira-client.sh create-subtask-templated PROJ-123 "Phase 1: Data Models" \
+  --labels Backend,Player \
+  --due 2026-02-10 \
+  --blocked-by PROJ-120 \
+  --blocks PROJ-125,PROJ-128
+```
+
+**Template Sections:**
+- Scope - อธิบายว่า subtask นี้ทำอะไร
+- Dependencies - Blocked by / Blocks (links)
+- Tasks - รายละเอียดงาน พร้อม file locations และ code snippets
+- Acceptance Criteria - checklist
+
+**Options:**
+- `--labels L1,L2` - เพิ่ม labels
+- `--due YYYY-MM-DD` - กำหนด due date
+- `--blocked-by KEY1,KEY2` - สร้าง "blocked by" links
+- `--blocks KEY1,KEY2` - สร้าง "blocks" links
+
+### Command: add-labels
+
+เพิ่ม labels ให้ issue
+
+```bash
+./scripts/jira-client.sh add-labels PROJ-123 Backend Player game
+```
+
+### Command: link
+
+สร้าง dependency link ระหว่าง issues
+
+```bash
+# PROJ-124 blocks PROJ-125
+./scripts/jira-client.sh link blocks PROJ-124 PROJ-125
+
+# PROJ-125 is blocked by PROJ-124
+./scripts/jira-client.sh link blocked-by PROJ-125 PROJ-124
+
+# PROJ-123 relates to PROJ-456
+./scripts/jira-client.sh link relates PROJ-123 PROJ-456
+```
+
+**Link Types:**
+- `blocks` - from_key blocks to_key
+- `blocked-by` - from_key is blocked by to_key
+- `relates` - from_key relates to to_key
 
 ### Workflow: Start Working on Issue
 
@@ -314,6 +400,18 @@ JIRA_PROJECT="PROJ"  # default project
 # Create issue
 /jira create
 
+# Create Story/Epic with templates
+./scripts/jira-client.sh create-story PROJ "ระบบลดอัตราการจ่ายอัตโนมัติ" --labels Backend,Player --due 2026-02-14
+./scripts/jira-client.sh create-epic PROJ "Big Feature Initiative" --labels Backend
+
+# Create subtasks with dependencies
+./scripts/jira-client.sh create-subtask-templated PROJ-123 "Phase 1: Data Models" --labels Backend --blocks PROJ-125,PROJ-128
+./scripts/jira-client.sh create-subtask-templated PROJ-123 "Phase 2: Win Processing" --labels Backend --blocked-by PROJ-124 --blocks PROJ-126
+
+# Add labels and links
+./scripts/jira-client.sh add-labels PROJ-123 Backend Player game
+./scripts/jira-client.sh link blocks PROJ-124 PROJ-125
+
 # Start work (use /focus with Jira path)
 /focus  # then select "Jira (existing)" and enter PROJ-123
 
@@ -321,6 +419,29 @@ JIRA_PROJECT="PROJ"  # default project
 /jira transitions PROJ-123  # see available transitions
 /jira transition PROJ-123 31  # 31 = Done (example ID)
 /jira comment PROJ-123 "Fixed the issue"
+```
+
+## Example Output: Creating Story with Subtasks
+
+```
+=== Created Issues ===
+
+PROJ-123 (Story): ระบบลดอัตราการจ่ายอัตโนมัติ
+├── Labels: Backend, Player, game
+├── Due: 2026-02-14
+└── Subtasks:
+    ├── PROJ-124: Phase 1: Data Models [Backend, Player]
+    │   └── Blocks: PROJ-125, PROJ-128
+    ├── PROJ-125: Phase 2: Win Processing [Backend]
+    │   ├── Blocked by: PROJ-124
+    │   └── Blocks: PROJ-126
+    ├── PROJ-126: Phase 3: Reduction Logic [Backend, Player]
+    │   ├── Blocked by: PROJ-125
+    │   └── Blocks: PROJ-127
+    ├── PROJ-127: Phase 4: Max Bet Reduction [Backend, game]
+    │   └── Blocked by: PROJ-126
+    └── PROJ-128: Phase 5: Admin UI [Backend, Backoffice]
+        └── Blocked by: PROJ-124
 ```
 
 ## Integration with Other Commands
