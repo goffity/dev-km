@@ -39,6 +39,15 @@ validate_issue_key() {
     fi
 }
 
+# Validate due date format (YYYY-MM-DD)
+validate_due_date() {
+    local date="$1"
+    if [[ -n "$date" ]] && [[ ! "$date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
+        return 1
+    fi
+}
+
 # Validate transition ID (numeric)
 validate_transition_id() {
     local id="$1"
@@ -689,11 +698,7 @@ cmd_create() {
         return 1
     fi
 
-    # Validate due date format if provided
-    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
-        return 1
-    fi
+    validate_due_date "$due_date" || return 1
 
     # Build payload using jq for safe JSON escaping
     local payload
@@ -823,11 +828,7 @@ cmd_create_subtask() {
         return 1
     fi
 
-    # Validate due date format if provided
-    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
-        return 1
-    fi
+    validate_due_date "$due_date" || return 1
 
     # Extract project from parent key
     local project
@@ -1302,11 +1303,7 @@ cmd_create_story() {
         return 1
     fi
 
-    # Validate due date format if provided
-    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
-        return 1
-    fi
+    validate_due_date "$due_date" || return 1
 
     # Generate template description
     local description
@@ -1383,11 +1380,7 @@ cmd_create_epic() {
         return 1
     fi
 
-    # Validate due date format if provided
-    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
-        return 1
-    fi
+    validate_due_date "$due_date" || return 1
 
     # Generate template description
     local description
@@ -1478,11 +1471,7 @@ cmd_create_subtask_templated() {
 
     validate_issue_key "$parent_key" || return 1
 
-    # Validate due date format if provided
-    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
-        return 1
-    fi
+    validate_due_date "$due_date" || return 1
 
     # Generate template description
     local description
