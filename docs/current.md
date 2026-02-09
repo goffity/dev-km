@@ -1,5 +1,5 @@
-STATE: completed
-TASK: Issue #97 - Add Jira Issue Templates for Story/Epic and Subtask
-SINCE: 2026-02-04 14:59
-ISSUE: #97
-BRANCH: main (merged from feat/jira-issue-templates)
+STATE: in-progress
+TASK: Add --label and --points flags to jira create and create-subtask commands
+SINCE: 2026-02-09 12:00
+ISSUE: #101
+BRANCH: feat/jira-label-points
