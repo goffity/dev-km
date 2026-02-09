@@ -39,6 +39,15 @@ validate_issue_key() {
     fi
 }
 
+# Validate due date format (YYYY-MM-DD)
+validate_due_date() {
+    local date="$1"
+    if [[ -n "$date" ]] && [[ ! "$date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
+        return 1
+    fi
+}
+
 # Validate transition ID (numeric)
 validate_transition_id() {
     local id="$1"
@@ -648,7 +657,7 @@ cmd_projects() {
 cmd_create() {
     validate_config || return 1
 
-    local project="" summary="" description="" issue_type="Task" assign_to="" labels="" story_points=""
+    local project="" summary="" description="" issue_type="Task" assign_to="" labels="" story_points="" due_date=""
 
     # Parse positional and flag arguments
     local positional=()
@@ -665,6 +674,9 @@ cmd_create() {
             --points)
                 [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --points requires a numeric value" >&2; return 1; }
                 story_points="$2"; shift 2 ;;
+            --due)
+                [[ -z "${2:-}" || "$2" == --* ]] && { echo "Error: --due requires a date (YYYY-MM-DD)" >&2; return 1; }
+                due_date="$2"; shift 2 ;;
             *)
                 positional+=("$1"); shift ;;
         esac
@@ -676,7 +688,7 @@ cmd_create() {
     issue_type="${positional[3]:-Task}"
 
     if [[ -z "$project" ]] || [[ -z "$summary" ]]; then
-        echo "Usage: jira-client.sh create <project> <summary> [description] [issue_type] [--assign me|accountId] [--label|--labels L1,L2] [--points N]" >&2
+        echo "Usage: jira-client.sh create <project> <summary> [description] [issue_type] [--assign me|accountId] [--label|--labels L1,L2] [--points N] [--due YYYY-MM-DD]" >&2
         return 1
     fi
 
@@ -685,6 +697,8 @@ cmd_create() {
         echo "Error: --points must be a numeric value (e.g., 3 or 0.5)" >&2
         return 1
     fi
+
+    validate_due_date "$due_date" || return 1
 
     # Build payload using jq for safe JSON escaping
     local payload
@@ -700,6 +714,7 @@ cmd_create() {
             --arg labels "$labels" \
             --arg points "$story_points" \
             --arg sp_field "$JIRA_STORY_POINTS_FIELD" \
+            --arg due_date "$due_date" \
             '{
                 fields: {
                     project: { key: $project },
@@ -708,6 +723,7 @@ cmd_create() {
                     issuetype: { name: $issue_type }
                 }
             }
+            | if $due_date != "" then .fields.duedate = $due_date else . end
             | if $labels != "" then .fields.labels = ($labels | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) else . end
             | if $points != "" then .fields[$sp_field] = ($points | tonumber) else . end')
     else
@@ -718,6 +734,7 @@ cmd_create() {
             --arg labels "$labels" \
             --arg points "$story_points" \
             --arg sp_field "$JIRA_STORY_POINTS_FIELD" \
+            --arg due_date "$due_date" \
             '{
                 fields: {
                     project: { key: $project },
@@ -725,6 +742,7 @@ cmd_create() {
                     issuetype: { name: $issue_type }
                 }
             }
+            | if $due_date != "" then .fields.duedate = $due_date else . end
             | if $labels != "" then .fields.labels = ($labels | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) else . end
             | if $points != "" then .fields[$sp_field] = ($points | tonumber) else . end')
     fi
@@ -810,11 +828,7 @@ cmd_create_subtask() {
         return 1
     fi
 
-    # Validate due date format if provided
-    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
-        return 1
-    fi
+    validate_due_date "$due_date" || return 1
 
     # Extract project from parent key
     local project
@@ -1289,6 +1303,8 @@ cmd_create_story() {
         return 1
     fi
 
+    validate_due_date "$due_date" || return 1
+
     # Generate template description
     local description
     description=$(generate_story_template)
@@ -1363,6 +1379,8 @@ cmd_create_epic() {
         echo "Usage: jira-client.sh create-epic <project> <summary> [--labels label1,label2] [--due YYYY-MM-DD]" >&2
         return 1
     fi
+
+    validate_due_date "$due_date" || return 1
 
     # Generate template description
     local description
@@ -1452,6 +1470,8 @@ cmd_create_subtask_templated() {
     fi
 
     validate_issue_key "$parent_key" || return 1
+
+    validate_due_date "$due_date" || return 1
 
     # Generate template description
     local description
@@ -1588,7 +1608,7 @@ Configuration Commands:
   status                Show configuration status
 
 Issue Commands:
-  create <project> <summary> [description] [type] [--assign me|accountId] [--label|--labels L1,L2] [--points N]
+  create <project> <summary> [description] [type] [--assign me|accountId] [--label|--labels L1,L2] [--points N] [--due YYYY-MM-DD]
                         Create new issue (auto-assigns via prefix mapping)
   create-story <project> <summary> [--labels L1,L2] [--due YYYY-MM-DD]
                         Create Story with standard template
