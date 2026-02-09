@@ -1302,6 +1302,12 @@ cmd_create_story() {
         return 1
     fi
 
+    # Validate due date format if provided
+    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
+        return 1
+    fi
+
     # Generate template description
     local description
     description=$(generate_story_template)
@@ -1374,6 +1380,12 @@ cmd_create_epic() {
 
     if [[ -z "$project" ]] || [[ -z "$summary" ]]; then
         echo "Usage: jira-client.sh create-epic <project> <summary> [--labels label1,label2] [--due YYYY-MM-DD]" >&2
+        return 1
+    fi
+
+    # Validate due date format if provided
+    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
         return 1
     fi
 
@@ -1465,6 +1477,12 @@ cmd_create_subtask_templated() {
     fi
 
     validate_issue_key "$parent_key" || return 1
+
+    # Validate due date format if provided
+    if [[ -n "$due_date" ]] && [[ ! "$due_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        echo "Error: Invalid date format. Expected YYYY-MM-DD" >&2
+        return 1
+    fi
 
     # Generate template description
     local description
