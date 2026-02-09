@@ -44,3 +44,4 @@
 2026-01-31 00:29 | working | Add resolve conversation step to /pr-review (#94)
 2026-01-31 01:11 | completed | Add resolve conversation step to /pr-review (#94) - PR #95 merged
 2026-02-04 14:59 | completed | Issue #97 - Add Jira Issue Templates
+2026-02-09 12:08 | completed | Add --label and --points flags to jira create and create-subtask commands
