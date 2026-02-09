@@ -1,5 +1,5 @@
-STATE: in-progress
-TASK: Add --label and --points flags to jira create and create-subtask commands
-SINCE: 2026-02-09 12:00
-ISSUE: #101
-BRANCH: feat/jira-label-points
+STATE: working
+TASK: Add --due flag to jira create command
+SINCE: 2026-02-09 12:15
+ISSUE: #104
+BRANCH: feat/104-jira-create-due-date
