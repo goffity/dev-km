@@ -1,4 +1,4 @@
-# Claude KM Skill Roadmap
+# Dev KM Roadmap
 
 ## Overview
 
@@ -64,17 +64,17 @@ Dec 2025                    Jan 2026
 
 | Issue | Title | Status |
 |-------|-------|--------|
-| [#2](https://github.com/goffity/claude-km-skill/issues/2) | Improve subagents (commit-assistant, pr-review, session-review) | Open |
-| [#28](https://github.com/goffity/claude-km-skill/issues/28) | Add Decision Rationale section to /distill template | Open |
-| [#29](https://github.com/goffity/claude-km-skill/issues/29) | Add Pattern Library support (patterns/) | Open |
-| [#30](https://github.com/goffity/claude-km-skill/issues/30) | Add Flow Documentation support (flows/) | Open |
-| [#31](https://github.com/goffity/claude-km-skill/issues/31) | Add Cross-Project Knowledge Sync (knowledge/shared/) | Open |
-| [#32](https://github.com/goffity/claude-km-skill/issues/32) | Add Knowledge Search Index | Open |
-| [#37](https://github.com/goffity/claude-km-skill/issues/37) | Add retention policy for auto-captured files | Open |
-| [#38](https://github.com/goffity/claude-km-skill/issues/38) | Add session consolidation for auto-captured files | Open |
-| [#40](https://github.com/goffity/claude-km-skill/issues/40) | Improve notification to show terminal/tab identifier | Open |
-| [#48](https://github.com/goffity/claude-km-skill/issues/48) | Add automatic PR review notification with polling daemon | Open |
-| [#49](https://github.com/goffity/claude-km-skill/issues/49) | Auto-assign issue when starting work | Open |
+| [#2](https://github.com/goffity/dev-km/issues/2) | Improve subagents (commit-assistant, pr-review, session-review) | Open |
+| [#28](https://github.com/goffity/dev-km/issues/28) | Add Decision Rationale section to /distill template | Open |
+| [#29](https://github.com/goffity/dev-km/issues/29) | Add Pattern Library support (patterns/) | Open |
+| [#30](https://github.com/goffity/dev-km/issues/30) | Add Flow Documentation support (flows/) | Open |
+| [#31](https://github.com/goffity/dev-km/issues/31) | Add Cross-Project Knowledge Sync (knowledge/shared/) | Open |
+| [#32](https://github.com/goffity/dev-km/issues/32) | Add Knowledge Search Index | Open |
+| [#37](https://github.com/goffity/dev-km/issues/37) | Add retention policy for auto-captured files | Open |
+| [#38](https://github.com/goffity/dev-km/issues/38) | Add session consolidation for auto-captured files | Open |
+| [#40](https://github.com/goffity/dev-km/issues/40) | Improve notification to show terminal/tab identifier | Open |
+| [#48](https://github.com/goffity/dev-km/issues/48) | Add automatic PR review notification with polling daemon | Open |
+| [#49](https://github.com/goffity/dev-km/issues/49) | Auto-assign issue when starting work | Open |
 
 **Key Deliverables:**
 - Pattern Library (`patterns/`) - Reusable code patterns with context
@@ -97,8 +97,8 @@ Dec 2025                    Jan 2026
 
 | Issue | Title | Status |
 |-------|-------|--------|
-| [#33](https://github.com/goffity/claude-km-skill/issues/33) | Add Session Summaries (weekly/monthly) | Open |
-| [#34](https://github.com/goffity/claude-km-skill/issues/34) | Add Code Examples Library (examples/) | Open |
+| [#33](https://github.com/goffity/dev-km/issues/33) | Add Session Summaries (weekly/monthly) | Open |
+| [#34](https://github.com/goffity/dev-km/issues/34) | Add Code Examples Library (examples/) | Open |
 
 **Key Deliverables:**
 - Session Summaries - Aggregate learnings by week/month
@@ -108,7 +108,7 @@ Dec 2025                    Jan 2026
 
 ## Feature Requests
 
-Have an idea? [Open an issue](https://github.com/goffity/claude-km-skill/issues/new)
+Have an idea? [Open an issue](https://github.com/goffity/dev-km/issues/new)
 
 ---
 

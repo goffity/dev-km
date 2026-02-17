@@ -48,10 +48,10 @@ gh repo create knowledge-management-skill --public --source=. --push
 
 ```bash
 # Clone ไปที่ Claude skills directory
-git clone https://github.com/YOUR_USERNAME/claude-km-skill.git ~/.claude/skills/claude-km-skill
+git clone https://github.com/YOUR_USERNAME/dev-km.git ~/.claude/skills/dev-km
 
 # หรือ add เป็น git submodule ใน project
-git submodule add https://github.com/YOUR_USERNAME/claude-km-skill.git .claude/skills/claude-km-skill
+git submodule add https://github.com/YOUR_USERNAME/dev-km.git .claude/skills/dev-km
 ```
 
 ### Share with Team
@@ -61,20 +61,20 @@ git submodule add https://github.com/YOUR_USERNAME/claude-km-skill.git .claude/s
 ```markdown
 ## Knowledge Management
 
-This project uses [Claude KM Skill](https://github.com/YOUR_USERNAME/claude-km-skill) for capturing development knowledge.
+This project uses [Claude KM Skill](https://github.com/YOUR_USERNAME/dev-km) for capturing development knowledge.
 
 ### Setup
 
 \`\`\`bash
-git clone https://github.com/YOUR_USERNAME/claude-km-skill.git ~/.claude/skills/claude-km-skill
-~/.claude/skills/claude-km-skill/scripts/init.sh .
+git clone https://github.com/YOUR_USERNAME/dev-km.git ~/.claude/skills/dev-km
+~/.claude/skills/dev-km/scripts/init.sh .
 \`\`\`
 ```
 
 ## Repository Structure
 
 ```
-claude-km-skill/
+dev-km/
 ├── .git/                       # Git history
 ├── .gitignore
 ├── LICENSE                     # MIT

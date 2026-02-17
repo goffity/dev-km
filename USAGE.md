@@ -1,6 +1,6 @@
 # Usage Guide
 
-Complete guide for using claude-km-skill in your development workflow.
+Complete guide for using dev-km in your development workflow.
 
 ## Table of Contents
 
@@ -19,11 +19,11 @@ Complete guide for using claude-km-skill in your development workflow.
 
 ```bash
 # 1. Clone the skill
-git clone https://github.com/goffity/claude-km-skill.git ~/.claude/skills/claude-km-skill
+git clone https://github.com/goffity/dev-km.git ~/.claude/skills/dev-km
 
 # 2. Initialize in your project
 cd /path/to/your/project
-~/.claude/skills/claude-km-skill/scripts/init.sh .
+~/.claude/skills/dev-km/scripts/init.sh .
 
 # 3. Start using with Claude Code
 claude
@@ -616,5 +616,5 @@ project/
 ## Getting Help
 
 - View all commands: Check `assets/commands/` in the skill directory
-- GitHub Issues: [github.com/goffity/claude-km-skill/issues](https://github.com/goffity/claude-km-skill/issues)
+- GitHub Issues: [github.com/goffity/dev-km/issues](https://github.com/goffity/dev-km/issues)
 - README: See [README.md](README.md) for installation and advanced features

@@ -2,8 +2,8 @@
 
 ระบบจัดการความรู้ 4 layers สำหรับ Claude Code CLI - inspired by [Claude-Mem](https://claude-mem.ai/) แต่เก็บไว้ใน Git repository
 
-[![GitHub release](https://img.shields.io/github/v/release/goffity/claude-km-skill)](https://github.com/goffity/claude-km-skill/releases)
-[![GitHub issues](https://img.shields.io/github/issues/goffity/claude-km-skill)](https://github.com/goffity/claude-km-skill/issues)
+[![GitHub release](https://img.shields.io/github/v/release/goffity/dev-km)](https://github.com/goffity/dev-km/releases)
+[![GitHub issues](https://img.shields.io/github/issues/goffity/dev-km)](https://github.com/goffity/dev-km/issues)
 
 > **Roadmap**: ดู [ROADMAP.md](ROADMAP.md) สำหรับแผนพัฒนา
 >
@@ -312,52 +312,38 @@ grep -l "type: decision" docs/retrospective/**/*.md
 ## Skill Structure
 
 ```
-claude-km-skill/
-├── SKILL.md                    # Main skill definition
-├── ROADMAP.md                  # Project roadmap & timeline
-├── hooks.json                  # Hook configurations (Notification, Stop)
+dev-km/
+├── SKILL.md                    # System overview (user-invocable: false)
+├── skills/                     # Sub-skills (proper SKILL.md format)
+│   ├── mem/SKILL.md            # /mem (user-invocable)
+│   ├── focus/                  # /focus (user-invocable)
+│   │   ├── SKILL.md
+│   │   └── jira-paths.md      # Jira detail (progressive disclosure)
+│   ├── td/                     # /td (user-invocable)
+│   │   ├── SKILL.md
+│   │   └── pr-commit-workflow.md
+│   ├── recap/SKILL.md          # /recap (user-invocable)
+│   ├── distill/SKILL.md        # /distill (user-invocable)
+│   ├── improve/SKILL.md        # /improve (user-invocable)
+│   ├── code-reviewer/SKILL.md  # context: fork
+│   ├── session-analyzer/SKILL.md
+│   ├── knowledge-curator/SKILL.md
+│   ├── build-validator/SKILL.md
+│   ├── code-simplifier/SKILL.md
+│   └── security-auditor/SKILL.md
+├── .claude/
+│   ├── commands/               # 15 secondary commands
+│   └── settings.json           # Hook configurations
 ├── scripts/
 │   ├── init.sh                 # Project setup script
+│   ├── install-symlinks.sh     # Create global symlinks
+│   ├── uninstall-symlinks.sh   # Clean removal
 │   ├── auto-capture.sh         # Auto session capture
-│   ├── ai-capture.sh           # AI-powered capture
-│   ├── claude-wrap.sh          # Claude wrapper
 │   ├── notify.sh               # macOS notification script
-│   ├── jira-client.sh          # Jira API client
-│   ├── pr-review-poll.sh       # PR review polling daemon
-│   ├── pr-review-poll-start.sh # Start daemon
-│   ├── pr-review-poll-stop.sh  # Stop daemon
-│   └── pr-review-poll-status.sh # Daemon status
-├── references/
-│   ├── mem-template.md         # Full /mem template
-│   ├── distill-template.md     # Full /distill template
-│   ├── td-template.md          # Full /td template
-│   ├── improve-workflow.md     # /improve workflow
-│   └── jira-integration.md     # Jira integration guide
-├── .claude/
-│   ├── commands/               # Slash command files (installed location)
-│   └── agents/                 # Subagent definitions (installed location)
-└── assets/
-    ├── commands/               # Slash command source files
-    │   ├── mem.md
-    │   ├── distill.md
-    │   ├── td.md
-    │   ├── improve.md
-    │   ├── commit.md
-    │   ├── focus.md
-    │   ├── recap.md
-    │   ├── review.md
-    │   ├── pr.md               # Create PR with tests & review
-    │   ├── pr-review.md        # Handle PR review feedback
-    │   ├── pr-poll.md          # PR review polling daemon
-    │   ├── permission.md       # Permission management
-    │   └── jira.md             # Jira commands
-    └── agents/                 # Subagent definitions
-        ├── code-reviewer.md
-        ├── code-simplifier.md
-        ├── security-auditor.md
-        ├── knowledge-curator.md
-        ├── session-analyzer.md
-        └── build-validator.md
+│   └── ...
+├── references/                 # Templates
+├── assets/commands/            # Command source files
+└── docs/                       # Knowledge data
 ```
 
 ## Issue Tracker Integration
@@ -530,21 +516,21 @@ tail -f ~/.pr-review-claude-*.log
         "matcher": "idle_prompt",
         "hooks": [{
           "type": "command",
-          "command": "~/.claude/skills/claude-km-skill/scripts/notify.sh"
+          "command": "~/.claude/skills/dev-km/scripts/notify.sh"
         }]
       },
       {
         "matcher": "permission_prompt",
         "hooks": [{
           "type": "command",
-          "command": "~/.claude/skills/claude-km-skill/scripts/notify.sh"
+          "command": "~/.claude/skills/dev-km/scripts/notify.sh"
         }]
       },
       {
         "matcher": "elicitation_dialog",
         "hooks": [{
           "type": "command",
-          "command": "~/.claude/skills/claude-km-skill/scripts/notify.sh"
+          "command": "~/.claude/skills/dev-km/scripts/notify.sh"
         }]
       }
     ]
@@ -585,7 +571,7 @@ git worktree add ../project-bugfix -b bugfix-123
 
 ```bash
 echo '{"notification_type": "idle_prompt", "cwd": "/test"}' | \
-  ~/.claude/skills/claude-km-skill/scripts/notify.sh
+  ~/.claude/skills/dev-km/scripts/notify.sh
 ```
 
 ### Optional: terminal-notifier
@@ -612,7 +598,7 @@ brew install terminal-notifier
       "matcher": "",
       "hooks": [{
         "type": "command",
-        "command": "[ ! -f docs/retrospective/$(date +%Y-%m)/retrospective_$(date +%Y-%m-%d)_*.md ] && ~/.claude/skills/claude-km-skill/scripts/auto-capture.sh . 2>/dev/null || true"
+        "command": "[ ! -f docs/retrospective/$(date +%Y-%m)/retrospective_$(date +%Y-%m-%d)_*.md ] && ~/.claude/skills/dev-km/scripts/auto-capture.sh . 2>/dev/null || true"
       }]
     }]
   }
@@ -625,7 +611,7 @@ brew install terminal-notifier
 
 ```bash
 # Add alias
-alias claude='~/.claude/skills/claude-km-skill/scripts/claude-wrap.sh'
+alias claude='~/.claude/skills/dev-km/scripts/claude-wrap.sh'
 
 # Usage - shows summary and asks to capture
 claude
@@ -677,45 +663,33 @@ See [AUTO-CAPTURE.md](AUTO-CAPTURE.md) for full documentation.
 | `ai-capture.sh` | Path validation |
 | `notify.sh` | Input sanitization, type whitelist |
 
-## Subagents
+## Specialist Skills
 
-ตามแนวทาง [Boris Cherny](https://twitter.com/bcherny) - ใช้ subagents เพื่อ automate workflows ที่ทำบ่อยๆ
+Specialist skills run in forked context (`context: fork`) for automated workflows.
 
-### Available Subagents
+### Available Specialists
 
-| Agent | Purpose | When to Use |
+| Skill | Purpose | When to Use |
 |-------|---------|-------------|
-| `code-reviewer` | Review code หา bugs, security, performance | ก่อน commit/push |
-| `code-simplifier` | Simplify code หลังเขียนเสร็จ | หลัง coding |
-| `security-auditor` | ตรวจสอบ security vulnerabilities | ก่อน push |
-| `knowledge-curator` | Scan learnings → แนะนำ distill topics | Weekly review |
-| `session-analyzer` | สร้าง retrospective draft | จบ session |
-| `build-validator` | ตรวจสอบ build + tests + lint | ก่อน push |
-
-### Usage
-
-เรียกใช้ subagent ผ่าน Task tool:
-
-```
-Use the code-reviewer agent to review my changes
-```
-
-หรือใช้กับ commands:
-- `/review` - ใช้ code-reviewer agent
-- `/td` - ใช้ session-analyzer และ build-validator
+| `code-reviewer` | Review code for bugs, security, performance | Before commit/push |
+| `code-simplifier` | Simplify code after writing | After coding |
+| `security-auditor` | OWASP Top 10 security audit | Before push |
+| `knowledge-curator` | Scan learnings, suggest distill topics | Weekly review |
+| `session-analyzer` | Create retrospective drafts | End of session |
+| `build-validator` | Validate build, tests, lint | Before push |
 
 ### Location
 
-Agents ถูกติดตั้งที่ `.claude/agents/` ใน project:
+Specialists are defined as `context: fork` skills in `skills/*/SKILL.md`:
 
 ```
-.claude/agents/
-├── code-reviewer.md
-├── code-simplifier.md
-├── security-auditor.md
-├── knowledge-curator.md
-├── session-analyzer.md
-└── build-validator.md
+skills/
+├── code-reviewer/SKILL.md
+├── code-simplifier/SKILL.md
+├── security-auditor/SKILL.md
+├── knowledge-curator/SKILL.md
+├── session-analyzer/SKILL.md
+└── build-validator/SKILL.md
 ```
 
 ## Contributing

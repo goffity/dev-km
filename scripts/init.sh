@@ -1,5 +1,5 @@
 #!/bin/bash
-# Knowledge Management System - Init Script
+# Dev Knowledge Management System - Init Script
 # Usage: ./init.sh [project-root]
 
 set -e
@@ -10,7 +10,7 @@ validate_path() {
 
     # Reject paths containing .. (path traversal)
     if [[ "$path" == *".."* ]]; then
-        echo "❌ Error: Path cannot contain '..'" >&2
+        echo "Error: Path cannot contain '..'" >&2
         exit 1
     fi
 
@@ -21,7 +21,7 @@ validate_path() {
         local parent_dir=$(dirname "$path")
         if [ "$parent_dir" != "." ] && [ "$parent_dir" != "/" ]; then
             resolved_path=$(cd "$parent_dir" 2>/dev/null && pwd)/$(basename "$path") || {
-                echo "❌ Error: Invalid path '$path'" >&2
+                echo "Error: Invalid path '$path'" >&2
                 exit 1
             }
         else
@@ -37,22 +37,21 @@ PROJECT_ROOT=$(validate_path "$RAW_PROJECT_ROOT")
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_ROOT="$(dirname "$SCRIPT_DIR")"
 
-echo "🚀 Initializing Knowledge Management System..."
+echo "Initializing Dev Knowledge Management System..."
 echo "   Project: $PROJECT_ROOT"
 echo ""
 
 # Create directories
-echo "📁 Creating directories..."
+echo "Creating directories..."
 mkdir -p "$PROJECT_ROOT/docs/learnings"
 mkdir -p "$PROJECT_ROOT/docs/knowledge-base"
 mkdir -p "$PROJECT_ROOT/docs/retrospective"
 mkdir -p "$PROJECT_ROOT/docs/auto-captured"
 mkdir -p "$PROJECT_ROOT/.claude/commands"
 mkdir -p "$PROJECT_ROOT/.claude/scripts"
-mkdir -p "$PROJECT_ROOT/.claude/agents"
 
 # Copy command files from assets (all .md files except README.md)
-echo "📄 Copying command files..."
+echo "Copying command files..."
 if [ -d "$SKILL_ROOT/assets/commands" ]; then
     for file in "$SKILL_ROOT/assets/commands"/*.md; do
         filename=$(basename "$file")
@@ -64,7 +63,7 @@ if [ -d "$SKILL_ROOT/assets/commands" ]; then
 fi
 
 # Copy scripts
-echo "📜 Copying scripts..."
+echo "Copying scripts..."
 if [ -f "$SKILL_ROOT/scripts/notify.sh" ]; then
     cp "$SKILL_ROOT/scripts/notify.sh" "$PROJECT_ROOT/.claude/scripts/"
     chmod +x "$PROJECT_ROOT/.claude/scripts/notify.sh"
@@ -72,22 +71,10 @@ if [ -f "$SKILL_ROOT/scripts/notify.sh" ]; then
 fi
 
 # Copy hooks.json example
-echo "🔗 Copying hooks example..."
+echo "Copying hooks example..."
 if [ -f "$SKILL_ROOT/hooks.json" ]; then
     cp "$SKILL_ROOT/hooks.json" "$PROJECT_ROOT/.claude/hooks.example.json"
     echo "   - hooks.example.json"
-fi
-
-# Copy agent files
-echo "🤖 Copying agents..."
-if [ -d "$SKILL_ROOT/assets/agents" ]; then
-    for file in "$SKILL_ROOT/assets/agents"/*.md; do
-        if [ -f "$file" ]; then
-            filename=$(basename "$file")
-            cp "$file" "$PROJECT_ROOT/.claude/agents/"
-            echo "   - $filename"
-        fi
-    done
 fi
 
 # Create .gitkeep files
@@ -96,39 +83,46 @@ touch "$PROJECT_ROOT/docs/knowledge-base/.gitkeep"
 touch "$PROJECT_ROOT/docs/retrospective/.gitkeep"
 touch "$PROJECT_ROOT/docs/auto-captured/.gitkeep"
 
+# Install symlinks for skills
+echo "Installing skill symlinks..."
+if [ -f "$SKILL_ROOT/scripts/install-symlinks.sh" ]; then
+    bash "$SKILL_ROOT/scripts/install-symlinks.sh"
+fi
+
 echo ""
-echo "✅ Knowledge Management System initialized!"
+echo "Dev Knowledge Management System initialized!"
 echo ""
-echo "📂 Structure created:"
+echo "Structure created:"
 echo "   $PROJECT_ROOT/"
-echo "   ├── .claude/"
-echo "   │   ├── commands/        (slash commands)"
-echo "   │   ├── agents/          (subagents)"
-echo "   │   ├── scripts/         (notify.sh)"
-echo "   │   └── hooks.example.json"
-echo "   └── docs/"
-echo "       ├── learnings/"
-echo "       ├── knowledge-base/"
-echo "       ├── retrospective/"
-echo "       └── auto-captured/"
+echo "   +-- .claude/"
+echo "   |   +-- commands/        (slash commands)"
+echo "   |   +-- scripts/         (notify.sh)"
+echo "   |   +-- hooks.example.json"
+echo "   +-- docs/"
+echo "       +-- learnings/"
+echo "       +-- knowledge-base/"
+echo "       +-- retrospective/"
+echo "       +-- auto-captured/"
 echo ""
-echo "📝 Next steps:"
+echo "Next steps:"
 echo "   1. Add to git: git add .claude/ docs/"
-echo "   2. Commit: git commit -m 'feat: add Knowledge Management System'"
+echo "   2. Commit: git commit -m 'feat: add Dev Knowledge Management System'"
 echo "   3. (Optional) Enable notifications:"
 echo "      - Copy hooks.example.json to settings.json"
 echo "      - Update script paths to match your project"
 echo ""
-echo "🎯 Commands:"
+echo "Core Skills:"
 echo "   /mem [topic]     - Quick knowledge capture"
 echo "   /distill [topic] - Extract patterns"
 echo "   /td              - Post-task retrospective"
 echo "   /improve         - Work on pending items"
+echo "   /recap           - Session context recap"
+echo "   /focus [task]    - Set current task focus"
 echo ""
-echo "🔔 Notifications:"
+echo "Notifications:"
 echo "   notify.sh sends macOS notifications when Claude needs attention"
 echo ""
-echo "🤖 Subagents:"
+echo "Specialist Skills (context: fork):"
 echo "   code-reviewer     - Review code for bugs, security, performance"
 echo "   code-simplifier   - Simplify code after writing"
 echo "   security-auditor  - Security vulnerability audit"
