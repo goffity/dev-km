@@ -31,26 +31,21 @@
 ### Installation
 
 ```bash
-# Clone repository
-git clone https://github.com/YOUR_USERNAME/knowledge-management-skill.git
+# Clone to Claude skills directory
+git clone https://github.com/goffity/dev-km.git ~/.claude/skills/dev-km
 
-# Copy to Claude skills directory
-cp -r knowledge-management-skill ~/.claude/skills/
+# Install symlinks (makes all 27 skills globally available)
+bash ~/.claude/skills/dev-km/scripts/install-symlinks.sh
 
-# Or install in your project
+# Initialize in your project
 cd /path/to/your/project
-~/.claude/skills/knowledge-management-skill/scripts/init.sh .
+~/.claude/skills/dev-km/scripts/init.sh .
 ```
 
-### Manual Setup
+### Uninstall
 
 ```bash
-# Create directories
-mkdir -p .claude/commands
-mkdir -p docs/{learnings,knowledge-base,retrospective}
-
-# Copy command files
-cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/commands/
+bash ~/.claude/skills/dev-km/scripts/uninstall-symlinks.sh
 ```
 
 ## Commands
@@ -72,7 +67,6 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 | `/review` | Manual code review | `/review` |
 | `/pr-review` | ตอบ PR feedback | `/pr-review` |
 | `/pr-poll` | จัดการ PR review polling daemon | `/pr-poll start` / `/pr-poll auto` |
-| `/permission` | จัดการ permissions - pre-allow safe commands | `/permission suggest` |
 
 ### Knowledge Capture (4-Layer)
 
@@ -83,22 +77,27 @@ cp ~/.claude/skills/knowledge-management-skill/assets/commands/*.md .claude/comm
 | `/td` | 3 | Post-task retrospective | `docs/retrospective/YYYY-MM/retrospective_*.md` |
 | `/improve` | 4 | Work on pending items | Implementation |
 
-### Jira Integration
+### Knowledge & Docs
 
 | Command | Purpose | Usage |
 |---------|---------|-------|
-| `/jira init` | ตั้งค่า Jira credentials | `/jira init` |
-| `/jira test` | ทดสอบ connection | `/jira test` |
-| `/jira list [project]` | แสดง issues ใน project | `/jira list PROJ` |
-| `/jira my` | แสดง issues ที่ assign ให้ฉัน | `/jira my` |
-| `/jira get <key>` | ดู issue details | `/jira get PROJ-123` |
-| `/jira create` | สร้าง issue ใหม่ (interactive) | `/jira create` |
-| `/jira search <query>` | ค้นหา issues | `/jira search "login bug"` |
-| `/jira transitions <key>` | ดู transitions ที่ทำได้ | `/jira transitions PROJ-123` |
-| `/jira transition <key> <id>` | เปลี่ยน status | `/jira transition PROJ-123 21` |
-| `/jira comment <key> <text>` | เพิ่ม comment | `/jira comment PROJ-123 "text"` |
+| `/cleanup [days]` | Retention policy management | `/cleanup 30` |
+| `/consolidate` | Daily session file consolidation | `/consolidate --execute` |
+| `/summary [period]` | Weekly/monthly summaries | `/summary weekly` |
+| `/search [query]` | Search knowledge index | `/search "auth pattern"` |
+| `/example [lang] [name]` | Save code examples | `/example go retry-backoff` |
+| `/flow [name]` | Process flow diagrams | `/flow deployment` |
+| `/pattern [name]` | Design pattern docs | `/pattern retry-with-backoff` |
+| `/share [path]` | Cross-project knowledge sharing | `/share docs/knowledge-base/topic.md` |
 
-> See [references/jira-integration.md](references/jira-integration.md) for full documentation.
+### Integration & Config
+
+| Command | Purpose | Usage |
+|---------|---------|-------|
+| `/jira [cmd]` | Jira issue management | `/jira list PROJ` |
+| `/permission` | Manage Claude Code permissions | `/permission suggest` |
+
+> See [references/jira-integration.md](references/jira-integration.md) for full Jira documentation.
 
 ## Session Lifecycle
 
@@ -259,38 +258,29 @@ ready ─────────────▶ working ──/td done──▶
 | `blocked` | ติดปัญหา | แก้ปัญหาก่อน |
 | `completed` | เสร็จแล้ว | `/focus` งานใหม่ |
 
-## Directory Structure
+## Project Directory Structure
+
+After running `init.sh`, your project will have:
 
 ```
 project/
-├── .claude/
-│   └── commands/
-│       ├── mem.md
-│       ├── distill.md
-│       ├── td.md
-│       ├── improve.md
-│       ├── commit.md
-│       ├── focus.md        # NEW: Set focus + create issue
-│       ├── recap.md        # NEW: Session context recovery
-│       └── review.md       # NEW: Code review
 └── docs/
     ├── current.md           # Current focus state
     ├── WIP.md               # Work in progress (paused tasks)
     ├── logs/
     │   └── activity.log     # Activity history
-    ├── learnings/           # Layer 1: Quick capture
+    ├── learnings/           # Layer 1: Quick capture (/mem)
+    │   └── YYYY-MM/DD/
+    ├── knowledge-base/      # Layer 2: Curated patterns (/distill)
+    ├── retrospective/       # Layer 3: Full reviews (/td)
     │   └── YYYY-MM/
-    │       └── DD/
-    │           └── HH.MM_slug.md
-    ├── knowledge-base/      # Layer 2: Curated patterns
-    │   └── [topic].md
-    ├── retrospective/       # Layer 3: Full reviews
-    │   └── YYYY-MM/
-    │       └── retrospective_YYYY-MM-DD_hhmmss.md
-    └── auto-captured/       # Auto-captured sessions
-        └── YYYY-MM/
-            └── DD/
-                └── HH.MM_session-*.md
+    ├── auto-captured/       # Auto-captured sessions
+    │   └── YYYY-MM/DD/
+    ├── examples/            # Code examples (/example)
+    ├── summaries/           # Session summaries (/summary)
+    ├── shared-knowledge/    # Cross-project knowledge (/share)
+    ├── flows/               # Process flows (/flow)
+    └── patterns/            # Design patterns (/pattern)
 ```
 
 ## Search
@@ -311,39 +301,60 @@ grep -l "type: decision" docs/retrospective/**/*.md
 
 ## Skill Structure
 
+All 27 skills use the official Claude Code `SKILL.md` specification with YAML frontmatter.
+
 ```
 dev-km/
-├── SKILL.md                    # System overview (user-invocable: false)
-├── skills/                     # Sub-skills (proper SKILL.md format)
-│   ├── mem/SKILL.md            # /mem (user-invocable)
-│   ├── focus/                  # /focus (user-invocable)
+├── SKILL.md                        # System overview (user-invocable: false)
+├── skills/                         # 27 sub-skills
+│   ├── mem/SKILL.md                # /mem - Quick knowledge capture
+│   ├── focus/                      # /focus - Set task + create issue
 │   │   ├── SKILL.md
-│   │   └── jira-paths.md      # Jira detail (progressive disclosure)
-│   ├── td/                     # /td (user-invocable)
+│   │   └── jira-paths.md          # Jira integration detail
+│   ├── td/                         # /td - Session retrospective
 │   │   ├── SKILL.md
 │   │   └── pr-commit-workflow.md
-│   ├── recap/SKILL.md          # /recap (user-invocable)
-│   ├── distill/SKILL.md        # /distill (user-invocable)
-│   ├── improve/SKILL.md        # /improve (user-invocable)
-│   ├── code-reviewer/SKILL.md  # context: fork
-│   ├── session-analyzer/SKILL.md
-│   ├── knowledge-curator/SKILL.md
-│   ├── build-validator/SKILL.md
-│   ├── code-simplifier/SKILL.md
-│   └── security-auditor/SKILL.md
+│   ├── recap/SKILL.md              # /recap - Load session context
+│   ├── distill/SKILL.md            # /distill - Extract patterns
+│   ├── improve/SKILL.md            # /improve - Work on pending items
+│   ├── commit/SKILL.md             # /commit - Atomic commits
+│   ├── pr/                         # /pr - Create PR
+│   │   ├── SKILL.md
+│   │   └── pr-post-create.md      # Auto-polling setup
+│   ├── review/SKILL.md             # /review - Code review
+│   ├── pr-review/                  # /pr-review - Handle PR feedback
+│   │   ├── SKILL.md
+│   │   ├── thread-resolution.md   # GraphQL thread resolve helpers
+│   │   └── copilot-reviews.md     # Copilot review handling
+│   ├── pr-poll/SKILL.md            # /pr-poll - PR review daemon
+│   ├── cleanup/SKILL.md            # /cleanup - Retention policy
+│   ├── consolidate/SKILL.md        # /consolidate - Session merger
+│   ├── summary/SKILL.md            # /summary - Weekly/monthly summaries
+│   ├── search/SKILL.md             # /search - Knowledge search
+│   ├── jira/SKILL.md               # /jira - Jira integration
+│   ├── example/SKILL.md            # /example - Code examples
+│   ├── flow/SKILL.md               # /flow - Process flow docs
+│   ├── pattern/SKILL.md            # /pattern - Design patterns
+│   ├── share/SKILL.md              # /share - Cross-project sync
+│   ├── permission/SKILL.md         # /permission - Permission management
+│   ├── code-reviewer/SKILL.md      # Specialist (context: fork)
+│   ├── session-analyzer/SKILL.md   # Specialist (context: fork)
+│   ├── knowledge-curator/SKILL.md  # Specialist (context: fork)
+│   ├── build-validator/SKILL.md    # Specialist (context: fork)
+│   ├── code-simplifier/SKILL.md    # Specialist (context: fork)
+│   └── security-auditor/SKILL.md   # Specialist (context: fork)
 ├── .claude/
-│   ├── commands/               # 15 secondary commands
-│   └── settings.json           # Hook configurations
+│   └── settings.json               # Hook configurations
 ├── scripts/
-│   ├── init.sh                 # Project setup script
-│   ├── install-symlinks.sh     # Create global symlinks
-│   ├── uninstall-symlinks.sh   # Clean removal
-│   ├── auto-capture.sh         # Auto session capture
-│   ├── notify.sh               # macOS notification script
+│   ├── init.sh                     # Project setup script
+│   ├── install-symlinks.sh         # Create 27 global symlinks
+│   ├── uninstall-symlinks.sh       # Clean removal
+│   ├── auto-capture.sh             # Auto session capture
+│   ├── notify.sh                   # macOS notification script
 │   └── ...
-├── references/                 # Templates
-├── assets/commands/            # Command source files
-└── docs/                       # Knowledge data
+├── references/                     # Templates
+├── assets/commands/                # Command source files (reference)
+└── docs/                           # Knowledge data
 ```
 
 ## Issue Tracker Integration
