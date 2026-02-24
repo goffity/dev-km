@@ -1,6 +1,7 @@
 ---
 name: recap
 description: Loads session context and pending work status for fresh session starts.
+user-invocable: true
 ---
 
 # Session Recap

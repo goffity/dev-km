@@ -2,6 +2,7 @@
 name: pr-poll
 description: Manages PR review polling daemon for automatic notifications and auto-respond.
 argument-hint: "[start|stop|auto|check|status]"
+user-invocable: true
 ---
 
 # PR Poll - Automatic PR Review Notifications

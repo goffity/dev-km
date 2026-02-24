@@ -2,6 +2,7 @@
 name: mem
 description: Captures quick knowledge insights during work sessions into structured learning files.
 argument-hint: "[topic]"
+user-invocable: true
 ---
 
 # Memory - Quick Knowledge Capture

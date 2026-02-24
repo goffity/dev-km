@@ -2,6 +2,7 @@
 name: pr-review
 description: Reviews and responds to PR feedback from reviewers with automatic thread resolution.
 argument-hint: "[pr-number]"
+user-invocable: true
 ---
 
 # PR Review Handler

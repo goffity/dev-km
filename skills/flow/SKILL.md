@@ -2,6 +2,7 @@
 name: flow
 description: Documents workflow diagrams and process flows with Mermaid diagram support.
 argument-hint: "[name]"
+user-invocable: true
 ---
 
 # Flow - Process Flow Documentation

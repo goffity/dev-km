@@ -1,6 +1,7 @@
 ---
 name: commit
 description: Creates atomic commits by invoking TDG and commenting on related GitHub issues.
+user-invocable: true
 ---
 
 # Atomic Commit

@@ -2,6 +2,7 @@
 name: cleanup
 description: Cleans up old auto-captured files with configurable retention policy and archive support.
 argument-hint: "[days]"
+user-invocable: true
 ---
 
 # Cleanup - Retention Policy Manager

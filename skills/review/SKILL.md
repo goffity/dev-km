@@ -1,6 +1,7 @@
 ---
 name: review
 description: Runs automated code review before push to catch bugs, security issues, and performance problems.
+user-invocable: true
 ---
 
 # Code Review

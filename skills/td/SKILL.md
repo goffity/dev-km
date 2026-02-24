@@ -2,6 +2,7 @@
 name: td
 description: Creates post-task retrospectives with Before/After context and session documentation.
 argument-hint: "[done|pending|blocked]"
+user-invocable: true
 ---
 
 # Post-Task Review & Retrospective

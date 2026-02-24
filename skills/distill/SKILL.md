@@ -2,6 +2,7 @@
 name: distill
 description: Synthesizes related learnings into reusable knowledge base patterns.
 argument-hint: "[topic-name]"
+user-invocable: true
 ---
 
 # Distill - Extract Patterns & Lessons

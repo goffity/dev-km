@@ -2,6 +2,7 @@
 name: pattern
 description: Documents reusable design patterns with structure, examples, and usage guidelines.
 argument-hint: "[name]"
+user-invocable: true
 ---
 
 # Pattern - Design Pattern Library

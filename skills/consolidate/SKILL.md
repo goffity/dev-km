@@ -1,6 +1,7 @@
 ---
 name: consolidate
 description: Consolidates auto-captured session files into daily summaries by grouping related sessions.
+user-invocable: true
 ---
 
 # Consolidate - Session File Merger

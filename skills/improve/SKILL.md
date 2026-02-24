@@ -1,6 +1,7 @@
 ---
 name: improve
 description: Extracts and implements pending improvement items from all knowledge sources.
+user-invocable: true
 ---
 
 # Improve - Work on Pending Items

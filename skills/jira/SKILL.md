@@ -2,6 +2,7 @@
 name: jira
 description: Manages Jira issues including creation, listing, transitions, and workflow integration.
 argument-hint: "[command] [arguments]"
+user-invocable: true
 ---
 
 # Jira Integration

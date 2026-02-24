@@ -2,6 +2,7 @@
 name: focus
 description: Sets current task focus, creates GitHub/Jira issues, and creates feature branches.
 argument-hint: "[task]"
+user-invocable: true
 ---
 
 # Set Focus

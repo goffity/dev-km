@@ -2,6 +2,7 @@
 name: search
 description: Searches knowledge base by title, tags, or content across all knowledge artifacts.
 argument-hint: "[query]"
+user-invocable: true
 ---
 
 # Search - Knowledge Search

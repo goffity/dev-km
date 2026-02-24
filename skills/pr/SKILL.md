@@ -1,6 +1,7 @@
 ---
 name: pr
 description: Runs tests, build, code review and creates pull requests with issue tracking.
+user-invocable: true
 ---
 
 # Create Pull Request

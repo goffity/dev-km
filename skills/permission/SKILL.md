@@ -2,6 +2,7 @@
 name: permission
 description: Manages Claude Code permissions by pre-allowing safe commands to reduce permission prompts.
 argument-hint: "[show|suggest|add]"
+user-invocable: true
 ---
 
 # Permission Management

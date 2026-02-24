@@ -2,6 +2,7 @@
 name: summary
 description: Generates weekly or monthly session summaries from retrospectives and activity logs.
 argument-hint: "[weekly|monthly]"
+user-invocable: true
 ---
 
 # Summary - Session Summaries

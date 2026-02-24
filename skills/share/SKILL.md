@@ -2,6 +2,7 @@
 name: share
 description: Shares knowledge across projects by copying to shared-knowledge directory with cross-project metadata.
 argument-hint: "[knowledge-file-path]"
+user-invocable: true
 ---
 
 # Share - Cross-Project Knowledge Sync

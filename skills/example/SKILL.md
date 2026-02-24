@@ -2,6 +2,7 @@
 name: example
 description: Saves reusable code examples to the examples library with metadata and tags.
 argument-hint: "[language] [name]"
+user-invocable: true
 ---
 
 # Example - Code Examples Library
