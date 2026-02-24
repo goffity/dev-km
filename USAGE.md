@@ -15,19 +15,32 @@ Complete guide for using dev-km in your development workflow.
 
 ## Quick Start
 
-### 5-Minute Setup
+### Installation
+
+```bash
+# Install all skills globally
+npx skills add goffity/dev-km --full-depth --all -g
+
+# Start using with Claude Code
+claude
+```
+
+<details>
+<summary>Alternative: Manual clone</summary>
 
 ```bash
 # 1. Clone the skill
 git clone https://github.com/goffity/dev-km.git ~/.claude/skills/dev-km
 
-# 2. Initialize in your project
+# 2. Install symlinks
+bash ~/.claude/skills/dev-km/scripts/install-symlinks.sh
+
+# 3. Initialize in your project
 cd /path/to/your/project
 ~/.claude/skills/dev-km/scripts/init.sh .
-
-# 3. Start using with Claude Code
-claude
 ```
+
+</details>
 
 ### Your First Session
 

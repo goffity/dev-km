@@ -31,21 +31,31 @@
 ### Installation
 
 ```bash
-# Clone to Claude skills directory
+# Install all skills globally
+npx skills add goffity/dev-km --full-depth --all -g
+```
+
+<details>
+<summary>Alternative: Manual clone</summary>
+
+```bash
+# 1. Clone the skill
 git clone https://github.com/goffity/dev-km.git ~/.claude/skills/dev-km
 
-# Install symlinks (makes all 27 skills globally available)
+# 2. Install symlinks (makes all skills globally available)
 bash ~/.claude/skills/dev-km/scripts/install-symlinks.sh
 
-# Initialize in your project
+# 3. Initialize in your project
 cd /path/to/your/project
 ~/.claude/skills/dev-km/scripts/init.sh .
 ```
 
+</details>
+
 ### Uninstall
 
 ```bash
-bash ~/.claude/skills/dev-km/scripts/uninstall-symlinks.sh
+npx skills remove dev-km
 ```
 
 ## Commands
