@@ -34,13 +34,7 @@ user-invocable: true
 
 ### Language Setting
 
-Before generating any output, check the language setting:
-
-```bash
-LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-```
-
-If `LANG` is `th`, generate all user-visible output (issue comments, retrospective file headings, confirmation) in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages and YAML frontmatter keys always remain in English.
+> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
 
 ### Step 0: Read Current Focus
 
@@ -228,118 +222,7 @@ Documentation Check
 
 ## Template (Retrospective)
 
-```markdown
----
-date: YYYY-MM-DDTHH:MM:SS+07:00
-type: feature|bugfix|refactor|decision|discovery|config|docs
-status: completed|pending|blocked
-tags: [tag1, tag2]
-branch: branch-name
-issue: "#123"
-duration: ~2h
-files_changed:
-  - path/to/file.go
----
-
-# [Task Title]
-
-## Session Metadata
-
-| Field | Value |
-|-------|-------|
-| Date | YYYY-MM-DD |
-| Time | HH:MM:SS (Asia/Bangkok) |
-| Duration | estimated |
-| Type | type |
-| Status | completed/pending/blocked |
-| Branch | branch |
-| Issue | #123 |
-
----
-
-## Context: Before
-
-- **Problem**: ปัญหาที่เจอ
-- **Existing Behavior**: พฤติกรรมเดิม
-- **Why Change**: ทำไมต้องเปลี่ยน
-- **Metrics**: ตัวเลขก่อนแก้
-
----
-
-## Context: After
-
-- **Solution**: วิธีแก้
-- **New Behavior**: พฤติกรรมใหม่
-- **Improvements**: สิ่งที่ดีขึ้น
-- **Metrics**: ตัวเลขหลังแก้
-
----
-
-## Test Results
-
-| Test | Status | Details |
-|------|--------|---------|
-| Acceptance Criteria | pass/fail | |
-
----
-
-## Decisions & Rationale
-
-| Decision | Options Considered | Chosen | Rationale |
-|----------|-------------------|--------|-----------|
-| | | | |
-
----
-
-## Session Summary
-
-### Task Description
-อธิบาย task
-
-### Outcome
-ผลลัพธ์
-
----
-
-## Technical Details
-
-### Files Modified
-
-| File | Changes |
-|------|---------|
-| `file.go` | changes |
-
-### Recent Commits
-
-```
-# commits from auto-capture
-```
-
----
-
-## Honest Feedback
-
-### What Went Well
--
-
-### What Could Be Improved
--
-
----
-
-## Lessons Learned
-
-- Technical insights
-- Process improvements
-
----
-
-## Validation Checklist
-
-- [ ] Acceptance criteria met
-- [ ] Documentation updated (if needed)
-- [ ] Used `/pr` for tests, build, review and PR creation
-```
+Use full template from `references/td-template.md`.
 
 ## Workflow Integration
 

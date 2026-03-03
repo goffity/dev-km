@@ -20,13 +20,7 @@ user-invocable: true
 
 ### Language Setting
 
-Before generating any output, check the language setting:
-
-```bash
-LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-```
-
-If `LANG` is `th`, generate all user-visible output (review summary, PR replies, defer issues, learning docs, final summary) in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages and issue title prefixes always remain in English.
+> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
 
 ### Step 1: Find Open PRs with Reviews
 
@@ -262,60 +256,7 @@ done
 
 ### Step 8: Create Learning Document
 
-สร้าง learning document จาก review:
-
-```bash
-# Create learning file
-TIMESTAMP=$(TZ='Asia/Bangkok' date '+%H.%M')
-DATE_PATH=$(TZ='Asia/Bangkok' date '+%Y-%m/%d')
-mkdir -p docs/learnings/$DATE_PATH
-```
-
-**Template:**
-
-```markdown
----
-type: review-learning
-source: PR #[number]
-reviewers: [@reviewer1, @reviewer2]
-tags: [relevant-tags]
----
-
-# [Title based on main feedback theme]
-
-## Key Insights from Review
-
-### What Reviewers Caught
-- [issue 1]: [what was wrong and why]
-- [issue 2]: [what was wrong and why]
-
-### Patterns to Remember
-- **Do**: [good practice learned]
-- **Don't**: [anti-pattern identified]
-
-## Code Examples
-
-### Before (What I wrote)
-```[lang]
-[original code]
-```
-
-### After (Improved version)
-```[lang]
-[fixed code]
-```
-
-## Why This Matters
-[explanation of why reviewer's suggestion is better]
-
-## Apply To
-- [future scenario 1]
-- [future scenario 2]
-
-## Related
-- PR: [url]
-- Issue: [url if any]
-```
+สร้าง learning document จาก review feedback ใช้ template จาก [review-learning-template.md](review-learning-template.md)
 
 ### Step 9: Push Changes
 
@@ -349,38 +290,16 @@ git push
 ### Actions Taken
 | Comment | Action | Status | Thread |
 |---------|--------|--------|--------|
-| [comment 1] | Fixed | Done | Resolved |
+| [comment 1] | Fixed (commit hash) | Done | Resolved |
 | [comment 2] | Replied | Done | Resolved |
 | [comment 3] | Deferred → #[issue] | Done | Resolved |
 
-### Summary Statistics
-- Total comments: [N]
-- Fixed: [N]
-- Replied: [N]
-- Deferred: [N]
-- Threads resolved: [N]/[N]
-
-### Deferred Items (Issues Created)
-| Issue | Title | From Comment |
-|-------|-------|--------------|
-| #[number] | [title] | @[reviewer] on [file:line] |
-
-### Files Modified
-- [file1]: [change description]
-- [file2]: [change description]
-
-### Learning Document
-Created: `docs/learnings/[path]/[filename].md`
+### Stats
+Total: [N] | Fixed: [N] | Replied: [N] | Deferred: [N] | Threads: [N]/[N]
 
 ### Next Steps
-- [ ] Wait for reviewer to re-review
-- [ ] Address any follow-up comments
-- [ ] Merge when approved
-- [ ] Work on deferred issues: #[number], #[number]
-
-### Commands
-- `gh pr view` - View PR status
-- `/pr-review` - Run again if new comments
+- [ ] Wait for re-review → `/pr-review` if new comments
+- [ ] Work on deferred issues: #[number]
 ```
 
 ## Troubleshooting
