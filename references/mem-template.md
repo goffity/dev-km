@@ -1,3 +1,5 @@
+> **Language:** If `LANGUAGE: th` in `docs/current.md`, translate all section headings per `references/language-guide.md`.
+
 # /mem Template
 
 ## File Path

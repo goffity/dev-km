@@ -16,6 +16,16 @@ user-invocable: true
 
 ## Instructions
 
+### Language Setting
+
+Before generating any output, check the language setting:
+
+```bash
+LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+```
+
+If `LANG` is `th`, generate recap output headings and messages in Thai. Refer to `references/language-guide.md` for standard translations. Display the current LANGUAGE setting as part of the context.
+
 ### Step 1: Load Current Focus
 
 ```bash

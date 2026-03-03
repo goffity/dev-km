@@ -21,6 +21,16 @@ Generate weekly or monthly summaries from retrospectives, learnings, and activit
 
 ## Instructions
 
+### Language Setting
+
+Before generating any output, check the language setting:
+
+```bash
+LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+```
+
+If `LANG` is `th`, generate summary headings and text in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages always remain in English.
+
 ### 1. Determine Period
 
 Parse arguments:

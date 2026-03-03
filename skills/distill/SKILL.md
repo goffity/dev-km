@@ -20,6 +20,16 @@ user-invocable: true
 
 ## Instructions
 
+### Language Setting
+
+Before generating any output, check the language setting:
+
+```bash
+LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+```
+
+If `LANG` is `th`, generate knowledge base headings in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages and file names always remain in English.
+
 1. **Scan learnings** for related content (3+ files on same topic)
 2. **Analyze** for patterns, anti-patterns, insights
 3. **Create** knowledge entry with template below

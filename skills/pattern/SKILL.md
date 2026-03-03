@@ -21,6 +21,16 @@ Document reusable design patterns with structure, examples, and usage guidelines
 
 ## Instructions
 
+### Language Setting
+
+Before generating any output, check the language setting:
+
+```bash
+LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+```
+
+If `LANG` is `th`, generate pattern document headings in Thai. Refer to `references/language-guide.md` for standard translations.
+
 1. **Parse name** → kebab-case filename
 2. **Ask user** about the pattern:
    - What type? (behavioral/structural/creational)
