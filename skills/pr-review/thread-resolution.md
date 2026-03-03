@@ -165,7 +165,7 @@ resolve_thread "$THREAD_ID" && echo "Resolved comment 126"
 
 ## Verify All Threads Resolved (Fallback)
 
-Primary resolve happens inline in Step 6.6. This check is for verification and catching missed threads.
+Primary resolve happens inline in Steps 6.1-6.5. Step 6.6 runs this check for verification and catching missed threads.
 
 ```bash
 check_unresolved_threads() {
