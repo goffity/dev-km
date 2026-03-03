@@ -110,6 +110,8 @@ gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | {id, body, u
 - ห้ามสร้าง comment ใหม่แยกต่างหาก
 - ต้อง reply ไปที่ comment นั้นๆ โดยตรงเท่านั้น
 
+**Thread Resolution:** ใช้ helper functions จาก [thread-resolution.md](thread-resolution.md) — `get_thread_id_for_comment(owner, repo, pr_number, comment_id)` และ `resolve_thread(thread_id)`
+
 สำหรับ **แต่ละ comment** ให้ทำแยกกัน:
 
 #### 6.1 Comment ที่ต้องแก้ไข
@@ -144,6 +146,12 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 rm /tmp/reply.txt
 ```
 
+```bash
+# Resolve thread
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
+```
+
 #### 6.2 Comment ที่ไม่ต้องแก้ไข
 
 ```bash
@@ -156,6 +164,12 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 [alternative approach if applicable]"
 ```
 
+```bash
+# Resolve thread
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
+```
+
 #### 6.3 Comment ที่เป็นคำถาม
 
 ```bash
@@ -164,12 +178,24 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
   -f body="[answer to question]"
 ```
 
+```bash
+# Resolve thread
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
+```
+
 #### 6.4 Comment ที่เป็นคำชม
 
 ```bash
 # Reply ไปที่ comment_id นั้นโดยตรง
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
   -f body="Thank you! [brief acknowledgment]"
+```
+
+```bash
+# Resolve thread
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
 ```
 
 #### 6.5 Comment ที่ต้อง Defer (งานที่จะทำภายหลัง)
@@ -216,6 +242,10 @@ EOF
 # 2. Reply พร้อม issue reference
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
   -f body="Thanks for the feedback! Created #$DEFER_ISSUE to track this work."
+
+# 3. Resolve thread
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
 ```
 
 **ตัวอย่าง Defer Cases:**
@@ -227,9 +257,30 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 | "Documentation could be improved" | `docs: improve documentation for [feature]` | `enhancement` |
 | "Performance could be better" | `perf: optimize [operation]` | `enhancement` |
 
-#### 6.6 Resolve Conversation After Reply
+#### 6.6 Verify All Threads Resolved
 
-After replying to each comment, resolve the conversation thread. See [thread-resolution.md](thread-resolution.md) for GraphQL helper functions and detailed resolution logic.
+หลังจาก reply + resolve ทุก comment แล้ว ตรวจสอบว่าไม่มี unresolved threads เหลืออยู่:
+
+```bash
+# Check for any remaining unresolved threads
+UNRESOLVED=$(gh api graphql -f query='
+    query($owner: String!, $repo: String!, $pr: Int!) {
+        repository(owner: $owner, name: $repo) {
+            pullRequest(number: $pr) {
+                reviewThreads(first: 100) {
+                    nodes { isResolved }
+                }
+            }
+        }
+    }
+' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" \
+  --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')
+
+if [[ "$UNRESOLVED" -gt 0 ]]; then
+    echo "Warning: $UNRESOLVED unresolved threads remaining"
+    # See thread-resolution.md for batch resolution helpers
+fi
+```
 
 ### Step 7: Update Related Issues
 
