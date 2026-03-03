@@ -2,6 +2,8 @@
 
 Step 7 detail from the `/td` command — handles committing docs based on PR status.
 
+> **Language:** Follow the language setting from `docs/current.md` as described in the parent `/td` skill. If `LANGUAGE: th`, generate PR descriptions and status text in Thai per `references/language-guide.md`. Commit messages remain in English.
+
 ## Step 7.1: Check Branch and PR Status
 
 ```bash

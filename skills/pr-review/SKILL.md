@@ -18,6 +18,16 @@ user-invocable: true
 
 ## Instructions
 
+### Language Setting
+
+Before generating any output, check the language setting:
+
+```bash
+LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+```
+
+If `LANG` is `th`, generate all user-visible output (review summary, PR replies, defer issues, learning docs, final summary) in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages and issue title prefixes always remain in English.
+
 ### Step 1: Find Open PRs with Reviews
 
 ```bash

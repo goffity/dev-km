@@ -55,6 +55,25 @@ STATE: [current state]
 
 ถ้ามี argument → ใช้เป็น task description
 
+### Step 3.3: Check Language Setting
+
+```bash
+CURRENT_LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+echo "Current language: ${CURRENT_LANG:-not set}"
+```
+
+ถ้า LANGUAGE ยังไม่ได้ตั้งค่า (ไม่มี field หรือค่าเป็น `-`) ให้ถามผู้ใช้ด้วย AskUserQuestion:
+
+```
+ภาษาสำหรับ output (Language for generated output):
+1. English (en)
+2. ภาษาไทย (th)
+```
+
+เก็บค่าที่เลือกไว้ใช้ใน Step 7
+
+ถ้ามีค่าอยู่แล้ว → ใช้ค่าเดิม ไม่ต้องถามซ้ำ
+
 ### Step 3.5: Choose Issue Tracker
 
 ใช้ AskUserQuestion เพื่อเลือก issue tracker:
@@ -80,6 +99,18 @@ fi
 ข้ามไป Step 4 (ใช้ GitHub เป็น default)
 
 For Jira-specific paths (B and C), see `jira-paths.md`.
+
+---
+
+## Language Setting
+
+Before generating any output, check the language setting:
+
+```bash
+LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+```
+
+If `LANG` is `th`, generate all user-visible output (issue body, confirmation) in Thai. Refer to `references/language-guide.md` for standard translations. Issue title conventional prefix (`feat:`, `fix:` etc.) always remains in English.
 
 ---
 
@@ -232,6 +263,7 @@ TASK: [task description from user]
 SINCE: $(date '+%Y-%m-%d %H:%M')
 ISSUE: #[issue-number]
 BRANCH: [type]/[issue-number]-[short-slug]
+LANGUAGE: [selected-language from Step 3.3, default: en]
 EOF
 ```
 
@@ -245,6 +277,7 @@ SINCE: $(date '+%Y-%m-%d %H:%M')
 ISSUE: [ISSUE_KEY]
 BRANCH: [type]/[ISSUE_KEY]-[short-slug]
 JIRA_URL: https://[domain]/browse/[ISSUE_KEY]
+LANGUAGE: [selected-language from Step 3.3, default: en]
 EOF
 ```
 

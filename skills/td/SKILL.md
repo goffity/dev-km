@@ -32,6 +32,16 @@ user-invocable: true
 
 ## Instructions
 
+### Language Setting
+
+Before generating any output, check the language setting:
+
+```bash
+LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+```
+
+If `LANG` is `th`, generate all user-visible output (issue comments, retrospective file headings, confirmation) in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages and YAML frontmatter keys always remain in English.
+
 ### Step 0: Read Current Focus
 
 ```bash

@@ -28,6 +28,16 @@ make test → make build → Code Review → Create PR
 
 ## Instructions
 
+### Language Setting
+
+Before generating any output, check the language setting:
+
+```bash
+LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+```
+
+If `LANG` is `th`, generate all user-visible output (issue comments, PR description) in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages, branch names, and conventional commit prefixes always remain in English.
+
 ### Step 0: Read Current Focus
 
 ```bash

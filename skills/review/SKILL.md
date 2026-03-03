@@ -16,6 +16,16 @@ user-invocable: true
 
 ## Instructions
 
+### Language Setting
+
+Before generating any output, check the language setting:
+
+```bash
+LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
+```
+
+If `LANG` is `th`, generate review report headings and status text in Thai. Refer to `references/language-guide.md` for standard translations.
+
 ### Step 1: Get Changed Files
 
 ```bash
