@@ -501,6 +501,43 @@ tail -f ~/.pr-review-claude-*.log
 | Force Push | อันตราย ห้ามใช้ |
 | Skip Tests | ต้อง pass ก่อน push |
 
+## Language Support
+
+รองรับการสร้าง output เป็นภาษาไทยหรือภาษาอังกฤษ ผ่าน `LANGUAGE` field ใน `docs/current.md`
+
+| Value | Behavior |
+|-------|----------|
+| `en` (default) | Output เป็นภาษาอังกฤษ |
+| `th` | Output เป็นภาษาไทย (commit messages ยังคงเป็น English) |
+
+### ตั้งค่า
+
+**อัตโนมัติ:** `/focus` จะถาม language preference เมื่อเริ่ม session ใหม่
+
+**Manual:** แก้ไข `docs/current.md` โดยตรง:
+
+```
+LANGUAGE: th
+```
+
+### สิ่งที่แปลเป็นไทย
+
+- Issue comments (จาก `/pr`, `/td`, `/commit`)
+- PR descriptions
+- GitHub issue body (จาก `/focus`)
+- Local docs: retrospective, learning, knowledge base, summary, flow, pattern
+- Confirmation messages
+
+### สิ่งที่คงเป็น English เสมอ
+
+- Commit messages (conventional commits format)
+- Branch names
+- Issue title prefix (`feat:`, `fix:`, etc.)
+- YAML frontmatter keys
+- Mermaid diagram labels
+
+---
+
 ## Why Not Claude-Mem?
 
 | Feature | Claude-Mem | This Skill |

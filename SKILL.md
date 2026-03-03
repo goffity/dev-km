@@ -91,9 +91,21 @@ docs/
 ./scripts/init.sh $PROJECT_ROOT
 ```
 
+## Language Support
+
+Output language is configured via `LANGUAGE` field in `docs/current.md`.
+
+| Value | Behavior |
+|-------|----------|
+| `en` (default) | All generated output in English |
+| `th` | Generated output in Thai (commit messages stay English) |
+
+Set during `/focus` or manually edit `docs/current.md`. See `references/language-guide.md` for translation reference.
+
 ## References
 
 - `references/mem-template.md` - Full /mem template
 - `references/distill-template.md` - Full /distill template
 - `references/td-template.md` - Full /td template
 - `references/improve-workflow.md` - /improve detailed workflow
+- `references/language-guide.md` - Thai/English translation guide
