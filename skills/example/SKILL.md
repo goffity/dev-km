@@ -21,13 +21,7 @@ Save and organize reusable code snippets with metadata.
 
 ### Language Setting
 
-Before generating any output, check the language setting:
-
-```bash
-LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-```
-
-If `LANG` is `th`, generate description comments in Thai. Refer to `references/language-guide.md` for standard translations. Code comments for metadata (Title, Tags) remain in English.
+> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
 
 1. **Parse arguments**: language (go, typescript, python, bash, etc.) and name (kebab-case)
 2. **Determine file extension** from language:

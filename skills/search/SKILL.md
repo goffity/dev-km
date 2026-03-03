@@ -20,6 +20,10 @@ Search across learnings, knowledge base, retrospectives, and examples.
 
 ## Instructions
 
+### Language Setting
+
+> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
+
 ### If `--reindex` flag is present
 
 Rebuild the index:

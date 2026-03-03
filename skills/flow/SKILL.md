@@ -23,13 +23,7 @@ Document workflows, sequences, and state machines with Mermaid diagrams.
 
 ### Language Setting
 
-Before generating any output, check the language setting:
-
-```bash
-LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-```
-
-If `LANG` is `th`, generate flow document headings in Thai. Refer to `references/language-guide.md` for standard translations. Mermaid diagram labels remain in English.
+> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
 
 1. **Parse name** → kebab-case filename
 2. **Ask user** about the flow:

@@ -104,13 +104,7 @@ For Jira-specific paths (B and C), see `jira-paths.md`.
 
 ## Language Setting
 
-Before generating any output, check the language setting:
-
-```bash
-LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-```
-
-If `LANG` is `th`, generate all user-visible output (issue body, confirmation) in Thai. Refer to `references/language-guide.md` for standard translations. Issue title conventional prefix (`feat:`, `fix:` etc.) always remains in English.
+> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
 
 ---
 

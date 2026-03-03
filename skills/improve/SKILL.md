@@ -12,13 +12,7 @@ user-invocable: true
 
 ### Language Setting
 
-Before generating any output, check the language setting:
-
-```bash
-LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-```
-
-If `LANG` is `th`, generate output headings and messages in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages always remain in English.
+> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
 
 1. **Scan** knowledge files (prioritized)
 2. **Extract** actionable items

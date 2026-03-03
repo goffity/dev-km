@@ -21,13 +21,7 @@ user-invocable: true
 
 ### Language Setting
 
-Before generating any output, check the language setting:
-
-```bash
-LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-```
-
-If `LANG` is `th`, generate learning file headings in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages and file slugs always remain in English.
+> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
 
 1. **Process title** → slug (lowercase, hyphens)
 2. **Gather context**: timestamp, branch, recent commits

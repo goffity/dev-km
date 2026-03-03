@@ -12,13 +12,7 @@ Invoke the TDG atomic commit skill to analyze changes and create clean, atomic c
 
 ### Language Setting
 
-Before generating any output, check the language setting:
-
-```bash
-LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-```
-
-If `LANG` is `th`, generate issue comments in Thai. Refer to `references/language-guide.md` for standard translations. Commit messages always remain in English (conventional commits format).
+> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
 
 Run the `tdg:atomic` skill:
 
