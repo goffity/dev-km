@@ -77,6 +77,19 @@ if [ -f "$SKILL_ROOT/hooks.json" ]; then
     echo "   - hooks.example.json"
 fi
 
+# Create initial current.md with default config
+if [ ! -f "$PROJECT_ROOT/docs/current.md" ]; then
+    cat > "$PROJECT_ROOT/docs/current.md" << 'EOF'
+STATE: ready
+TASK: -
+SINCE: -
+ISSUE: -
+BRANCH: -
+LANGUAGE: en
+EOF
+    echo "   Created docs/current.md with default config"
+fi
+
 # Create .gitkeep files
 touch "$PROJECT_ROOT/docs/learnings/.gitkeep"
 touch "$PROJECT_ROOT/docs/knowledge-base/.gitkeep"
