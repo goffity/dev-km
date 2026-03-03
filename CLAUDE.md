@@ -54,7 +54,7 @@ Defined in `hooks.json` and `.claude/settings.json`:
 |------|---------|
 | `SKILL.md` | Root skill definition (system overview, not user-invocable) |
 | `hooks.json` | Hook configurations for notifications and auto-capture |
-| `references/*.md` | Templates for mem, distill, td, and improve workflows |
+| `references/*.md` | Templates, bash helpers, language guide |
 | `scripts/init.sh` | Project initialization (creates dirs, copies commands, installs symlinks) |
 | `scripts/install-symlinks.sh` | Creates 27 skill symlinks in `~/.claude/skills/` |
 | `docs/current.md` | Current focus state (ISSUE/TASK tracking) |
@@ -73,6 +73,6 @@ Defined in `hooks.json` and `.claude/settings.json`:
 - Skill instructions (SKILL.md files) use Thai as the primary language.
 - Generated output (issue comments, PR descriptions, local docs) follows the `LANGUAGE` setting in `docs/current.md`. Default is `en`. When `th`, use `references/language-guide.md` for translations.
 - Commit messages and branch names always use English regardless of language setting.
-- Timestamps use `Asia/Bangkok` timezone (`export TZ='Asia/Bangkok'`).
+- Timestamps use `Asia/Bangkok` timezone (see `references/bash-helpers.md` for common snippets).
 - GitHub CLI (`gh`) is used for all GitHub operations (issues, PRs, comments).
 - Branch detection prefers `develop` as base, falls back to default branch.

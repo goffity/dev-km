@@ -104,6 +104,7 @@ Set during `/focus` or manually edit `docs/current.md`. See `references/language
 
 ## References
 
+- `references/bash-helpers.md` - Common bash snippets (TZ, language detection, focus context)
 - `references/mem-template.md` - Full /mem template
 - `references/distill-template.md` - Full /distill template
 - `references/td-template.md` - Full /td template
