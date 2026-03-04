@@ -150,12 +150,6 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 rm /tmp/reply.txt
 ```
 
-```bash
-# Resolve thread
-THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
-[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
-```
-
 #### 6.2 Comment ที่ไม่ต้องแก้ไข
 
 ```bash
@@ -167,12 +161,6 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 
 [alternative approach if applicable]"
 
-# Resolve thread
-THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
-[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
-```
-
-```bash
 # Resolve thread
 THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
 [[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
@@ -190,12 +178,6 @@ THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id
 [[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
 ```
 
-```bash
-# Resolve thread
-THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
-[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
-```
-
 #### 6.4 Comment ที่เป็นคำชม
 
 ```bash
@@ -203,12 +185,6 @@ THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
   -f body="Thank you! [brief acknowledgment]"
 
-# Resolve thread
-THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
-[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
-```
-
-```bash
 # Resolve thread
 THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
 [[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
