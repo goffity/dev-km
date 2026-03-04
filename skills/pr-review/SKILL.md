@@ -128,6 +128,10 @@ COMMIT_HASH=$(git rev-parse --short HEAD)
 # IMPORTANT: ใส่ commit hash เพื่อให้ reviewer trace ได้
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
   -f body="Fixed in ${COMMIT_HASH}! [description of what was changed]"
+
+# 4. Resolve thread
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
 ```
 
 **หมายเหตุ:**
@@ -162,6 +166,10 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 [explanation why not changing]
 
 [alternative approach if applicable]"
+
+# Resolve thread
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
 ```
 
 ```bash
@@ -176,6 +184,10 @@ THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id
 # Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
   -f body="[answer to question]"
+
+# Resolve thread
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
 ```
 
 ```bash
@@ -190,6 +202,10 @@ THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id
 # Reply ไปที่ comment_id นั้นโดยตรง
 gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
   -f body="Thank you! [brief acknowledgment]"
+
+# Resolve thread
+THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")
+[[ -n "$THREAD_ID" ]] && resolve_thread "$THREAD_ID"
 ```
 
 ```bash
