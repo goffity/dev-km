@@ -47,3 +47,4 @@
 2026-02-09 12:08 | completed | Add --label and --points flags to jira create and create-subtask commands
 2026-02-09 12:38 | completed | Add --due flag to jira create command (#104) - PR #105 merged
 2026-02-10 01:14 | completed | Refactor specialist TDD to autonomous via TDG plugin (multi-agent-auto-skill PR #86)
+2026-03-05 01:58 | completed | Auto-resolve PR review conversation threads (#15)
