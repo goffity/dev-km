@@ -37,6 +37,16 @@ Dec 2025                    Jan 2026
 
 ## Completed
 
+### v1.3 - i18n, KB Vault & PR Audit ✓
+
+| Issue | Title | Type |
+|-------|-------|------|
+| #15/#16 | Auto-resolve PR review threads (inline 6.1–6.5) | bug |
+| — | Migrate knowledge paths `docs/` → `kb/` Obsidian vault | refactor |
+| #17 | /pr-review language support (TH reply templates 6.1–6.5) | feature |
+| #18 | /pr language support (issue comments + PR body TH) | feature |
+| #19 | New `/pr-audit` skill — reviewer-side deep PR review | feature |
+
 ### v1.1 - Core Fixes & Jira Integration ✓
 
 | Issue | Title | Type |
