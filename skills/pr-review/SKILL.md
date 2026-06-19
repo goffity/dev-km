@@ -110,6 +110,8 @@ gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | {id, body, u
 - ห้ามสร้าง comment ใหม่แยกต่างหาก
 - ต้อง reply ไปที่ comment นั้นๆ โดยตรงเท่านั้น
 
+> **Language:** reply bodies ด้านล่าง (6.1–6.5) เป็น template ภาษาอังกฤษ — ถ้า `LANGUAGE: th` ใน `docs/current.md` ให้แปลตามตาราง "**/pr-review Reply Templates (6.1–6.5)**" ใน [language-guide.md](../../references/language-guide.md) ส่วน commit message คงเป็น English เสมอ
+
 **Thread Resolution:** ใช้ helper functions จาก [thread-resolution.md](thread-resolution.md) — `get_thread_id_for_comment(owner, repo, pr_number, comment_id)` และ `resolve_thread(thread_id)`
 
 สำหรับ **แต่ละ comment** ให้ทำแยกกัน:
