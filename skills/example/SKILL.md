@@ -15,7 +15,7 @@ Save and organize reusable code snippets with metadata.
 /example [language] [name]
 ```
 
-**Output:** `$PROJECT_ROOT/docs/examples/[language]/[name].[ext]`
+**Output:** `$PROJECT_ROOT/kb/02-patterns/examples/[language]/[name].[ext]`
 
 ## Instructions
 
@@ -33,7 +33,7 @@ Save and organize reusable code snippets with metadata.
    - rust → .rs
    - java → .java
 3. **Gather context**: Look at recent code in conversation, ask user what code to save if unclear
-4. **Create directory**: `docs/examples/[language]/`
+4. **Create directory**: `kb/02-patterns/examples/[language]/`
 5. **Generate file** with metadata header and code
 6. **Confirm** with user
 
@@ -107,7 +107,7 @@ package examples
 
 To browse existing examples:
 ```bash
-find docs/examples -type f | sort
+find kb/02-patterns/examples -type f | sort
 ```
 
 ## Related Commands

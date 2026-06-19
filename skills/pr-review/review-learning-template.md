@@ -5,7 +5,7 @@ Template for creating learning documents from PR reviews (used in Step 8 of `/pr
 ## File Path
 
 ```
-docs/learnings/YYYY-MM/DD/HH.MM_pr-review-[topic].md
+kb/05-ai-reviewed/learnings/YYYY-MM/DD/HH.MM_pr-review-[topic].md
 ```
 
 ## Setup
@@ -13,7 +13,7 @@ docs/learnings/YYYY-MM/DD/HH.MM_pr-review-[topic].md
 ```bash
 TIMESTAMP=$(TZ='Asia/Bangkok' date '+%H.%M')
 DATE_PATH=$(TZ='Asia/Bangkok' date '+%Y-%m/%d')
-mkdir -p docs/learnings/$DATE_PATH
+mkdir -p kb/05-ai-reviewed/learnings/$DATE_PATH
 ```
 
 ## Template

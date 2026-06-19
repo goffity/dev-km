@@ -4,37 +4,58 @@
 
 ## Scan Order (Priority)
 
-1. `docs/knowledge-base/` - Patterns to apply (Priority 1)
-2. `docs/retrospective/` - Future Improvements (Priority 2)
-3. `docs/learnings/` - Gotchas to fix (Priority 3, skip "Distilled")
+1. `kb/02-patterns/` - Patterns to apply (Priority 1)
+2. `kb/04-decisions/` - ADR action items (Priority 2)
+3. `kb/03-bugs/` - Bug postmortem action items (Priority 3)
+4. `kb/05-ai-reviewed/retrospective/` - Future Improvements (Priority 4)
+5. `kb/05-ai-reviewed/learnings/` - Gotchas to fix (Priority 5, skip "Distilled")
+
+> `kb/` = symlink to Obsidian second-brain vault.
+> Legacy `docs/` paths deprecated.
 
 ## Scan Commands
 
 ```bash
-# Find knowledge-base files
-find $PROJECT_ROOT/docs/knowledge-base -name "*.md" -type f | sort -r
+# Patterns (Priority 1)
+find $PROJECT_ROOT/kb/02-patterns -name "*.md" -type f | sort -r
 
-# Find retrospective files
-find $PROJECT_ROOT/docs/retrospective -name "*.md" -type f | sort -r
+# ADRs (Priority 2)
+find $PROJECT_ROOT/kb/04-decisions -name "*.md" -type f | sort -r
 
-# Find learning files (check if not yet distilled)
-find $PROJECT_ROOT/docs/learnings -name "*.md" -type f | sort -r
+# Bug postmortems (Priority 3)
+find $PROJECT_ROOT/kb/03-bugs -name "*.md" -type f | sort -r
+
+# Retrospectives (Priority 4)
+find $PROJECT_ROOT/kb/05-ai-reviewed/retrospective -name "*.md" -type f | sort -r
+
+# Learnings (Priority 5, skip distilled)
+find $PROJECT_ROOT/kb/05-ai-reviewed/learnings -name "*.md" -type f | sort -r
 ```
 
 ## Extract Actionable Items
 
-### From Knowledge Base (Priority 1)
+### From Patterns (Priority 1)
 
 - "## When to Apply" conditions ที่ยังไม่ได้ implement
 - Patterns ที่ยังไม่ได้ใช้ในโค้ด
 - Anti-patterns ที่ยังมีอยู่ในโค้ด
 
-### From Retrospectives (Priority 2)
+### From ADRs (Priority 2)
+
+- "## ผลกระทบ" — items ที่ต้องเปลี่ยน (`- [ ]`)
+- Migration path ที่ยังไม่เสร็จ
+
+### From Bug Postmortems (Priority 3)
+
+- "## Action Items" — preventive actions (`- [ ]`)
+- "## Detection Gap" — monitoring/alerting ที่ต้องเพิ่ม
+
+### From Retrospectives (Priority 4)
 
 - "### Future Improvements" section
-- Items ที่ยังไม่ได้ทำ (`- [ ]`)
+- "## 📋 Action Items" (`- [ ]`)
 
-### From Learnings (Priority 3)
+### From Learnings (Priority 5)
 
 - "## Gotchas & Warnings" ที่ควรแก้ไข
 - Actionable items จาก "## What We Learned"
@@ -45,22 +66,31 @@ find $PROJECT_ROOT/docs/learnings -name "*.md" -type f | sort -r
 ```markdown
 ## Pending Improvements
 
-### From Knowledge Base - Priority 1
+### From Patterns - Priority 1
 
-kafka-consumer-error-handling.md:
+Kafka Error Handling.md:
 1. [ ] Apply retry pattern to all consumers
 2. [ ] Add dead letter queue for failed messages
 
-### From Retrospectives - Priority 2
+### From ADRs - Priority 2
 
-retrospective_2025-12-23_143000.md:
-3. [ ] Add consumer mocks to Makefile
-4. [ ] Consider round.status = "settled" after all bets processed
+ADR-008-otelzap-trace-injection.md:
+3. [ ] Migrate remaining services to otelzap
 
-### From Learnings - Priority 3
+### From Bug Postmortems - Priority 3
+
+2026-04-18 mongo - nil pointer.md:
+4. [ ] Add nil-vs-empty check to report-api
+
+### From Retrospectives - Priority 4
+
+retrospective_2026-04-01_150100.md:
+5. [ ] Add consumer mocks to Makefile
+
+### From Learnings - Priority 5
 
 14.30_redis-connection-issue.md:
-5. [ ] Document Redis pubsub patterns in CLAUDE.md
+6. [ ] Document Redis pubsub patterns in CLAUDE.md
 ```
 
 ## User Selection
@@ -78,9 +108,12 @@ For each selected item:
 3. ทดสอบ (run tests)
 4. Commit with atomic commits
 5. Update source file:
-   - Knowledge Base: เพิ่ม changelog entry
+   - Pattern: เพิ่ม changelog entry
+   - ADR: อัพเดท impact checklist
+   - Bug: mark action item complete
    - Retrospective: เปลี่ยน `- [ ]` เป็น `- [x]`
    - Learning: เพิ่ม note ว่า resolved
+6. ใช้ wiki-link `[[...]]` เมื่อ reference file อื่นใน vault
 
 ## Output Summary
 
@@ -91,11 +124,12 @@ For each selected item:
 - [ ] Consider round.status = "settled" (skipped - needs discussion)
 
 Updated files:
-- docs/retrospective/2025-12/retrospective_2025-12-23_143000.md
+- kb/05-ai-reviewed/retrospective/2026-04/retrospective_2026-04-01_150100.md
 ```
 
 ## Notes
 
-- Prioritize knowledge-base items เพราะเป็น curated patterns
+- Prioritize patterns + ADRs (stable/curated knowledge)
 - ถ้า item ต้องการ discussion หรือ approval ให้ถามก่อน
 - Update source file หลังทำเสร็จแต่ละ item
+- ห้ามแก้ `docs/` เดิม — ใช้ `kb/` เท่านั้น

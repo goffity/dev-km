@@ -24,21 +24,32 @@ user-invocable: true
 
 | Priority | Source | Look For |
 |----------|--------|----------|
-| 1 | `docs/knowledge-base/` | "When to Apply", patterns to implement |
-| 2 | `docs/retrospective/` | "Future Improvements" (`- [ ]`) |
-| 3 | `docs/learnings/` | "Gotchas" to fix (skip "Distilled") |
+| 1 | `kb/02-patterns/` | "When to Apply", patterns to implement |
+| 2 | `kb/04-decisions/` | ADR action items (`- [ ]` in impact) |
+| 3 | `kb/03-bugs/` | Postmortem "Action Items" (`- [ ]`) |
+| 4 | `kb/05-ai-reviewed/retrospective/` | "Future Improvements" (`- [ ]`) |
+| 5 | `kb/05-ai-reviewed/learnings/` | "Gotchas" to fix (skip "Distilled") |
+
+> Note: `kb/` is a symlink to the Obsidian second-brain vault.
+> Legacy paths `docs/knowledge-base/` + `docs/retrospective/` + `docs/learnings/` are deprecated — scan `kb/` only.
 
 ## Scan Commands
 
 ```bash
-# Knowledge base
-find $PROJECT_ROOT/docs/knowledge-base -name "*.md" -type f
+# Patterns (Priority 1)
+find $PROJECT_ROOT/kb/02-patterns -name "*.md" -type f
 
-# Retrospectives
-find $PROJECT_ROOT/docs/retrospective -name "*.md" -type f
+# ADRs (Priority 2)
+find $PROJECT_ROOT/kb/04-decisions -name "*.md" -type f
 
-# Learnings (skip distilled)
-find $PROJECT_ROOT/docs/learnings -name "*.md" -type f
+# Bug postmortems (Priority 3)
+find $PROJECT_ROOT/kb/03-bugs -name "*.md" -type f
+
+# Retrospectives (Priority 4)
+find $PROJECT_ROOT/kb/05-ai-reviewed/retrospective -name "*.md" -type f
+
+# Learnings (Priority 5, skip distilled)
+find $PROJECT_ROOT/kb/05-ai-reviewed/learnings -name "*.md" -type f
 ```
 
 ## Present Format
@@ -46,20 +57,30 @@ find $PROJECT_ROOT/docs/learnings -name "*.md" -type f
 ```markdown
 ## Pending Improvements
 
-### From Knowledge Base - Priority 1
+### From Patterns - Priority 1
 
-kafka-error-handling.md:
+Kafka Error Handling.md:
 1. [ ] Apply retry pattern to all consumers
 
-### From Retrospectives - Priority 2
+### From ADRs - Priority 2
 
-retrospective_2025-12-23_143000.md:
-2. [ ] Add consumer mocks to Makefile
+ADR-008-otelzap-trace-injection.md:
+2. [ ] Migrate remaining services to otelzap
 
-### From Learnings - Priority 3
+### From Bug Postmortems - Priority 3
+
+2026-04-18 mongo - nil pointer dashboard.md:
+3. [ ] Add nil-vs-empty check to report-api
+
+### From Retrospectives - Priority 4
+
+retrospective_2026-04-01_150100.md:
+4. [ ] Add consumer mocks to Makefile
+
+### From Learnings - Priority 5
 
 14.30_redis-issue.md:
-3. [ ] Document Redis patterns
+5. [ ] Document Redis patterns
 ```
 
 ## User Selection
@@ -86,14 +107,14 @@ For each selected item:
 - [ ] Redis patterns (skipped - needs discussion)
 
 Updated:
-- docs/retrospective/2025-12/retrospective_*.md
+- kb/05-ai-reviewed/retrospective/2026-04/retrospective_*.md
 ```
 
 ## Rules
 
 | Rule | Description |
 |------|-------------|
-| **PRIORITIZE** | Knowledge base first |
+| **PRIORITIZE** | Patterns first (stable), then ADRs, Bugs, Retros, Learnings |
 | **ASK** | If needs discussion/approval |
-| **UPDATE** | Source file after completion |
+| **UPDATE** | Source file after completion (use wiki-link `[[...]]` for cross-reference) |
 | **ATOMIC** | Use atomic commits |

@@ -20,7 +20,7 @@ user-invocable: true
 
 ## Output
 
-`$PROJECT_ROOT/docs/retrospective/YYYY-MM/retrospective_YYYY-MM-DD_hhmmss.md`
+`$PROJECT_ROOT/kb/05-ai-reviewed/retrospective/YYYY-MM/retrospective_YYYY-MM-DD_hhmmss.md`
 
 ## Flow
 
@@ -148,7 +148,7 @@ EOF
 
 ### Step 5: Create Retrospective File
 
-สร้างไฟล์ `docs/retrospective/YYYY-MM/retrospective_YYYY-MM-DD_hhmmss.md`
+สร้างไฟล์ `kb/05-ai-reviewed/retrospective/YYYY-MM/retrospective_YYYY-MM-DD_hhmmss.md`
 
 (ใช้ template ด้านล่าง)
 
@@ -211,7 +211,7 @@ Documentation Check
 
 ### Summary
 - Issue: #[issue-number] - Comment added
-- Retrospective: docs/retrospective/[path]
+- Retrospective: kb/05-ai-reviewed/retrospective/[path]
 
 ### Next Steps
 1. ใช้ `/pr` เพื่อรัน tests, build, review และสร้าง PR

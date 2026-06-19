@@ -5,7 +5,7 @@
 ## File Path
 
 ```
-docs/retrospective/YYYY-MM/retrospective_YYYY-MM-DD_hhmmss.md
+kb/05-ai-reviewed/retrospective/YYYY-MM/retrospective_YYYY-MM-DD_hhmmss.md
 ```
 
 ## Frontmatter
@@ -173,13 +173,13 @@ git diff --name-only HEAD
 git log --oneline -10 --since="4 hours ago"
 
 # Create directory
-mkdir -p docs/retrospective/$(TZ='Asia/Bangkok' date '+%Y-%m')
+mkdir -p kb/05-ai-reviewed/retrospective/$(TZ='Asia/Bangkok' date '+%Y-%m')
 ```
 
 ## Commit
 
 ```bash
-git add docs/retrospective/
+git add kb/05-ai-reviewed/retrospective/
 git commit -m "docs(retro): [type] - [title]"
 ```
 

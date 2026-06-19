@@ -5,7 +5,7 @@
 ## File Path
 
 ```
-docs/learnings/YYYY-MM/DD/HH.MM_[slug].md
+kb/05-ai-reviewed/learnings/YYYY-MM/DD/HH.MM_[slug].md
 ```
 
 ## Template
@@ -70,12 +70,12 @@ git log --oneline -5
 git branch --show-current
 
 # Create directory
-mkdir -p docs/learnings/$(TZ='Asia/Bangkok' date '+%Y-%m')/$(TZ='Asia/Bangkok' date '+%d')
+mkdir -p kb/05-ai-reviewed/learnings/$(TZ='Asia/Bangkok' date '+%Y-%m')/$(TZ='Asia/Bangkok' date '+%d')
 ```
 
 ## Commit
 
 ```bash
-git add docs/learnings/
+git add kb/05-ai-reviewed/learnings/
 git commit -m "learn: [title]"
 ```

@@ -5,18 +5,30 @@
 ## File Path
 
 ```
-docs/knowledge-base/[topic-name].md
+kb/02-patterns/<domain>/<Pattern Name>.md
 ```
+
+Domain folders: `grpc`, `observability`, `database`, `k8s`, `websocket`, `workflow`, `auth`, `architecture`, `testing`
+Create new domain if none fits.
 
 ## Template
 
 ```markdown
-# [Topic Name]
+---
+tags: [pattern, <domain>]
+type: pattern
+domain: <domain>
+services: [<services>]
+date: YYYY-MM-DD
+status: stable
+---
+
+# [Pattern Name]
 
 | Field | Value |
 |-------|-------|
 | **Created** | YYYY-MM-DD |
-| **Sources** | learnings ที่ใช้ distill |
+| **Sources** | [[learning-1]], [[learning-2]] (wiki-links) |
 | **Tags** | `tag1` `tag2` |
 
 ---
@@ -96,7 +108,7 @@ docs/knowledge-base/[topic-name].md
 
 ## Related
 
-- Learnings: `docs/learnings/...` (source files)
+- Learnings: `kb/05-ai-reviewed/learnings/...` (source files)
 - Code: `path/to/relevant/code.go`
 - Docs: link to external docs
 
@@ -115,13 +127,13 @@ Mark source learnings:
 
 ```markdown
 ---
-> **Distilled:** ถูก distill ไปที่ `docs/knowledge-base/[topic].md`
+> **Distilled:** ถูก distill ไปที่ `kb/02-patterns/[topic].md`
 ```
 
 ## Commit
 
 ```bash
-git add docs/knowledge-base/ docs/learnings/
+git add kb/02-patterns/ kb/05-ai-reviewed/learnings/
 git commit -m "knowledge: [topic-name] - [summary]"
 ```
 

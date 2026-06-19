@@ -15,6 +15,18 @@ user-invocable: true
 /focus [task description]
 ```
 
+## Pre-Feature Checklist (discipline, not ceremony)
+
+ก่อนเริ่ม feature ใหม่ ทำ 3 ขั้นสั้นๆ (รวม ~5 นาที) แทนการ scaffold context pack เต็ม:
+
+1. **Grep AP registry** — `grep -i "<keyword>" kb/02-patterns/anti-patterns/registry.md` (2-3 นาที)
+   - ใช้ keyword จากงาน (bank account, gateway, websocket, ฯลฯ) เพื่อเช็คปัญหาเดิมที่เคยเจอ
+2. **Verify data flow ในโค้ดจริง** — grep handler → service → repository → gRPC/Kafka ก่อนเขียน spec (1-2 นาที)
+   - Spec/Plan ห้ามใช้ชื่อ file/function โดยไม่ verify — ใส่ `file.go:123` อ้างอิง
+3. **อ่าน CLAUDE.md ของ repo** ก่อนสร้าง infra files (migration, CI config, Dockerfile) — กัน convention drift
+
+ถ้า task แตะ ≥ 2 repos + proto/schema หรือ security-critical → ลองใช้ [[Multi-Repo Feature Development]] §4.4 Validation Agents ก่อน merge
+
 ## Instructions
 
 ### Step 1: Check Current State
@@ -244,6 +256,8 @@ fi
 - ตัดคำที่ไม่จำเป็นออก (a, an, the)
 - จำกัดความยาวไม่เกิน 30 ตัวอักษร
 
+---
+
 ## Step 7: Update Files
 
 **Update `docs/current.md`:**
@@ -272,6 +286,7 @@ ISSUE: [ISSUE_KEY]
 BRANCH: [type]/[ISSUE_KEY]-[short-slug]
 JIRA_URL: https://[domain]/browse/[ISSUE_KEY]
 LANGUAGE: [selected-language from Step 3.3, default: en]
+PLAN: [path to plan file, if any]
 EOF
 ```
 
@@ -375,3 +390,4 @@ Assigned to: you
 | `/jira list` | ดู Jira issues |
 | `/jira transitions` | ดู transitions ที่ทำได้ |
 | `/td` | จบ session + retrospective |
+

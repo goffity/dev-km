@@ -17,7 +17,7 @@ Generate weekly or monthly summaries from retrospectives, learnings, and activit
 /summary weekly 2026-01  # Generate for specific week/month
 ```
 
-**Output:** `$PROJECT_ROOT/docs/summaries/YYYY-MM-weekN.md` or `YYYY-MM.md`
+**Output:** `$PROJECT_ROOT/kb/05-ai-reviewed/summaries/YYYY-MM-weekN.md` or `YYYY-MM.md`
 
 ## Instructions
 
@@ -48,16 +48,16 @@ export TZ='Asia/Bangkok'
 grep "^$YEAR-$MONTH" docs/logs/activity.log
 
 # Retrospectives for the period
-find docs/retrospective/$YEAR-$MONTH -name "*.md" -type f | sort
+find kb/05-ai-reviewed/retrospective/$YEAR-$MONTH -name "*.md" -type f | sort
 
 # Learnings for the period
-find docs/learnings/$YEAR-$MONTH -name "*.md" -type f | sort
+find kb/05-ai-reviewed/learnings/$YEAR-$MONTH -name "*.md" -type f | sort
 
 # Git commits for the period
 git log --oneline --since="[start-date]" --until="[end-date]"
 
 # Knowledge base updates
-git log --oneline --since="[start-date]" --until="[end-date]" -- docs/knowledge-base/
+git log --oneline --since="[start-date]" --until="[end-date]" -- kb/02-patterns/
 ```
 
 ### 3. Analyze and Generate
@@ -75,7 +75,7 @@ Use the template below.
 ### 5. Commit
 
 ```bash
-git add docs/summaries/
+git add kb/05-ai-reviewed/summaries/
 git commit -m "docs: [weekly|monthly] summary for [period]"
 ```
 
@@ -106,11 +106,11 @@ git commit -m "docs: [weekly|monthly] summary for [period]"
 
 ## Learnings Captured
 
-- `docs/learnings/[path]` - [title]
+- `kb/05-ai-reviewed/learnings/[path]` - [title]
 
 ## Knowledge Distilled
 
-- `docs/knowledge-base/[topic].md` - [title]
+- `kb/02-patterns/[topic].md` - [title]
 
 ## Decisions Made
 

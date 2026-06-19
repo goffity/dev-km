@@ -11,7 +11,7 @@ Agent สำหรับ scan learnings และแนะนำ topics ที�
 
 ## Purpose
 
-- Scan docs/learnings/ หา patterns
+- Scan kb/05-ai-reviewed/learnings/ หา patterns
 - Group related learnings by topic
 - แนะนำ topics ที่มี 3+ learnings
 - ช่วยเตรียม input สำหรับ `/distill`
@@ -29,8 +29,8 @@ Agent สำหรับ scan learnings และแนะนำ topics ที�
 ### Step 1: Scan Learnings Directory
 
 ```bash
-find docs/learnings -name "*.md" -type f | head -50
-find docs/learnings -name "*.md" | wc -l
+find kb/05-ai-reviewed/learnings -name "*.md" -type f | head -50
+find kb/05-ai-reviewed/learnings -name "*.md" | wc -l
 ```
 
 ### Step 2: Extract Topics from Each Learning
@@ -62,7 +62,7 @@ A topic is ready for distill when:
 ### Step 5: Check Existing Knowledge Base
 
 ```bash
-ls -la docs/knowledge-base/
+ls -la kb/02-patterns/
 ```
 
 Compare with candidates to avoid duplicates.

@@ -15,7 +15,7 @@ user-invocable: true
 /mem [descriptive title]
 ```
 
-**Output:** `$PROJECT_ROOT/docs/learnings/YYYY-MM/DD/HH.MM_[slug].md`
+**Output:** `$PROJECT_ROOT/kb/05-ai-reviewed/learnings/YYYY-MM/DD/HH.MM_[slug].md`
 
 ## Instructions
 
@@ -25,7 +25,7 @@ user-invocable: true
 
 1. **Process title** → slug (lowercase, hyphens)
 2. **Gather context**: timestamp, branch, recent commits
-3. **Create directory**: `docs/learnings/YYYY-MM/DD/`
+3. **Create directory**: `kb/05-ai-reviewed/learnings/YYYY-MM/DD/`
 4. **Generate file** with template below
 5. **Commit**: `git commit -m "learn: [title]"`
 

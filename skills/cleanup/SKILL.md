@@ -30,7 +30,7 @@ find docs/auto-captured -type f -name "*.md" 2>/dev/null | wc -l | xargs echo "T
 
 echo ""
 echo "=== Learnings Files ==="
-find docs/learnings -type f -name "*.md" 2>/dev/null | wc -l | xargs echo "Total files:"
+find kb/05-ai-reviewed/learnings -type f -name "*.md" 2>/dev/null | wc -l | xargs echo "Total files:"
 
 echo ""
 echo "=== Archives ==="
@@ -110,9 +110,9 @@ Display the script output showing:
 | Target | Policy |
 |--------|--------|
 | `docs/auto-captured/` | Delete all files older than retention period |
-| `docs/learnings/` | Delete only `status: draft` files older than retention period |
-| `docs/retrospective/` | Never auto-delete (permanent records) |
-| `docs/knowledge-base/` | Never auto-delete (distilled knowledge) |
+| `kb/05-ai-reviewed/learnings/` | Delete only `status: draft` files older than retention period |
+| `kb/05-ai-reviewed/retrospective/` | Never auto-delete (permanent records) |
+| `kb/02-patterns/` | Never auto-delete (distilled knowledge) |
 
 ## Archive Format
 

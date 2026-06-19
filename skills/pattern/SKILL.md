@@ -17,7 +17,7 @@ Document reusable design patterns with structure, examples, and usage guidelines
 /pattern worker-coordination
 ```
 
-**Output:** `$PROJECT_ROOT/docs/patterns/[name].md`
+**Output:** `$PROJECT_ROOT/kb/02-patterns/[name].md`
 
 ## Instructions
 
@@ -31,7 +31,7 @@ Document reusable design patterns with structure, examples, and usage guidelines
    - What problem does it solve?
    - What language for the example?
 3. **Generate** pattern document
-4. **Save** to `docs/patterns/[name].md`
+4. **Save** to `kb/02-patterns/[name].md`
 
 ## Template
 

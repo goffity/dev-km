@@ -13,7 +13,7 @@ Copy project-specific knowledge to the shared directory for reuse across project
 
 ```
 /share [knowledge-file-path]
-/share docs/knowledge-base/retry-pattern.md
+/share kb/02-patterns/retry-pattern.md
 ```
 
 **Output:** `$PROJECT_ROOT/docs/shared-knowledge/[filename].md`
@@ -47,7 +47,7 @@ To use shared knowledge in another project:
 ln -s /path/to/shared-knowledge docs/shared-knowledge
 
 # Option 2: Copy specific files
-cp /path/to/shared-knowledge/pattern.md docs/knowledge-base/
+cp /path/to/shared-knowledge/pattern.md kb/02-patterns/
 ```
 
 ## Related Commands

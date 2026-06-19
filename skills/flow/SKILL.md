@@ -17,7 +17,7 @@ Document workflows, sequences, and state machines with Mermaid diagrams.
 /flow deployment
 ```
 
-**Output:** `$PROJECT_ROOT/docs/flows/[name].md`
+**Output:** `$PROJECT_ROOT/kb/02-patterns/flows/[name].md`
 
 ## Instructions
 
@@ -31,7 +31,7 @@ Document workflows, sequences, and state machines with Mermaid diagrams.
    - What actors/components are involved?
    - What are the main steps?
 3. **Generate** flow document with Mermaid diagram
-4. **Save** to `docs/flows/[name].md`
+4. **Save** to `kb/02-patterns/flows/[name].md`
 
 ## Template
 

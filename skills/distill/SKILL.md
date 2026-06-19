@@ -15,8 +15,11 @@ user-invocable: true
 /distill [topic-name]
 ```
 
-**Input:** `docs/learnings/`
-**Output:** `docs/knowledge-base/[topic-name].md`
+**Input:** `kb/05-ai-reviewed/learnings/` (vault via symlink)
+**Output:** `kb/02-patterns/<domain>/<Name>.md`
+
+> Note: `kb/` is a symlink to the Obsidian second-brain vault.
+> Legacy path `docs/learnings/` + `docs/knowledge-base/` is deprecated — scan `kb/` only.
 
 ## Instructions
 
@@ -25,10 +28,25 @@ user-invocable: true
 > Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
 
 1. **Scan learnings** for related content (3+ files on same topic)
+   ```bash
+   find $PROJECT_ROOT/kb/05-ai-reviewed/learnings -name "*.md" -type f
+   ```
 2. **Analyze** for patterns, anti-patterns, insights
-3. **Create** knowledge entry with template below
-4. **Mark sources** as "Distilled"
-5. **Commit**: `git commit -m "knowledge: [topic] - [summary]"`
+3. **Pick domain folder** under `kb/02-patterns/` (grpc, observability, database, k8s, websocket, workflow, auth, architecture, testing). Create new domain folder if needed.
+4. **Create** knowledge entry with template below — use Title Case filename (e.g. `Consumer Retry Pattern.md`)
+5. **Add frontmatter** per vault convention:
+   ```yaml
+   ---
+   tags: [pattern, <domain>]
+   type: pattern
+   domain: <domain>
+   services: [<services-using-this>]
+   date: YYYY-MM-DD
+   status: stable
+   ---
+   ```
+6. **Mark sources** as "Distilled" (append `> **Distilled:** → [[<Pattern Name>]]`)
+7. **Commit**: `git commit -m "knowledge: [topic] - [summary]"`
 
 ## Template
 
@@ -119,9 +137,9 @@ user-invocable: true
 
 ## After Distilling
 
-Mark source learnings:
+Mark source learnings (use wiki-link for Obsidian graph):
 ```markdown
-> **Distilled:** → `docs/knowledge-base/[topic].md`
+> **Distilled:** → [[<Pattern Name>]]
 ```
 
 ## When to Distill
