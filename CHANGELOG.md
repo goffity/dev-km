@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-06-19
+
 ### Added
 - **`/pr-audit` skill** (#19) — reviewer-side deep audit of an open PR by number/URL.
   - Resolves PR (supports `--repo owner/name` and cross-repo forks).
@@ -54,5 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/goffity/dev-km/compare/v0.24.4...HEAD
+[Unreleased]: https://github.com/goffity/dev-km/compare/v0.25.0...HEAD
+[0.25.0]: https://github.com/goffity/dev-km/compare/v0.24.4...v0.25.0
 [0.24.4]: https://github.com/goffity/dev-km/releases/tag/v0.24.4
