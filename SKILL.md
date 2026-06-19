@@ -18,9 +18,9 @@ user-invocable: false
 
 | Skill | Layer | Output | Trigger |
 |-------|-------|--------|---------|
-| `/mem [topic]` | 1 | `docs/learnings/YYYY-MM/DD/HH.MM_slug.md` | Quick insight capture |
-| `/distill [topic]` | 2 | `docs/knowledge-base/[topic].md` | 3+ learnings on same topic |
-| `/td` | 3 | `docs/retrospective/YYYY-MM/retrospective_*.md` | Task completed |
+| `/mem [topic]` | 1 | `kb/05-ai-reviewed/learnings/YYYY-MM/DD/HH.MM_slug.md` | Quick insight capture |
+| `/distill [topic]` | 2 | `kb/02-patterns/<domain>/[topic].md` | 3+ learnings on same topic |
+| `/td` | 3 | `kb/05-ai-reviewed/retrospective/YYYY-MM/retrospective_*.md` | Task completed |
 | `/improve` | 4 | Implementation | Work on pending items |
 | `/recap` | - | Context summary | Start new session |
 | `/focus [task]` | - | Issue + branch | Set current task |
@@ -32,7 +32,8 @@ user-invocable: false
 | `/commit` | Atomic commits via TDG |
 | `/pr` | Tests, build, review, create PR |
 | `/review` | Code review before push |
-| `/pr-review` | Handle PR review feedback |
+| `/pr-review` | Handle PR review feedback (own PR) |
+| `/pr-audit [pr#]` | Reviewer-side deep audit of an open PR (clone+build, inline+summary) |
 | `/pr-poll` | PR review notification daemon |
 
 ## Knowledge & Docs Skills (user-invocable)
@@ -69,21 +70,29 @@ user-invocable: false
 ## Directory Structure
 
 ```
-docs/
-├── learnings/           # /mem output
-│   └── YYYY-MM/DD/
-├── knowledge-base/      # /distill output
-├── retrospective/       # /td output
-│   └── YYYY-MM/
-├── auto-captured/       # Auto-capture output
-├── examples/            # /example output
-├── summaries/           # /summary output
-├── shared-knowledge/    # /share output
-├── flows/               # /flow output
-├── patterns/            # /pattern output
-├── logs/                # Activity log
-└── current.md           # Current focus state
+kb/                          # symlink to Obsidian second-brain vault
+├── 02-patterns/             # /distill, /pattern output (curated patterns)
+│   ├── <domain>/            #   grpc, observability, database, k8s, ...
+│   ├── anti-patterns/       #   anti-pattern registry
+│   ├── examples/            # /example output
+│   └── flows/               # /flow output
+├── 03-bugs/                 # Bug postmortems (scanned by /improve)
+├── 04-decisions/            # ADRs (scanned by /improve)
+└── 05-ai-reviewed/
+    ├── learnings/           # /mem output
+    │   └── YYYY-MM/DD/
+    ├── retrospective/       # /td output
+    │   └── YYYY-MM/
+    └── summaries/           # /summary output
+
+docs/                        # repo-local, NOT in vault
+├── auto-captured/           # Auto-capture output
+├── shared-knowledge/        # /share output
+├── logs/                    # Activity log
+└── current.md               # Current focus state (STATE/TASK/ISSUE/BRANCH/LANGUAGE)
 ```
+
+> `kb/` = symlink to the Obsidian vault. Legacy `docs/{learnings,knowledge-base,retrospective,...}` paths are deprecated.
 
 ## Setup
 

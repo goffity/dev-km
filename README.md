@@ -75,16 +75,17 @@ npx skills remove dev-km
 | `/commit` | Atomic commits (via TDG) | `/commit` |
 | `/pr` | Test + Build + Review + Create PR + Auto-respond | `/pr` |
 | `/review` | Manual code review | `/review` |
-| `/pr-review` | ตอบ PR feedback | `/pr-review` |
+| `/pr-review` | ตอบ PR feedback (PR ของตัวเอง) | `/pr-review` |
+| `/pr-audit` | รีวิว PR คนอื่นเชิงลึก (clone+build, inline+summary) | `/pr-audit 351 --mode=comment` |
 | `/pr-poll` | จัดการ PR review polling daemon | `/pr-poll start` / `/pr-poll auto` |
 
 ### Knowledge Capture (4-Layer)
 
 | Command | Layer | Purpose | Output |
 |---------|-------|---------|--------|
-| `/mem [topic]` | 1 | Quick capture ระหว่างงาน | `docs/learnings/YYYY-MM/DD/HH.MM_slug.md` |
-| `/distill [topic]` | 2 | Extract patterns | `docs/knowledge-base/[topic].md` |
-| `/td` | 3 | Post-task retrospective | `docs/retrospective/YYYY-MM/retrospective_*.md` |
+| `/mem [topic]` | 1 | Quick capture ระหว่างงาน | `kb/05-ai-reviewed/learnings/YYYY-MM/DD/HH.MM_slug.md` |
+| `/distill [topic]` | 2 | Extract patterns | `kb/02-patterns/<domain>/[topic].md` |
+| `/td` | 3 | Post-task retrospective | `kb/05-ai-reviewed/retrospective/YYYY-MM/retrospective_*.md` |
 | `/improve` | 4 | Work on pending items | Implementation |
 
 ### Knowledge & Docs
@@ -98,7 +99,7 @@ npx skills remove dev-km
 | `/example [lang] [name]` | Save code examples | `/example go retry-backoff` |
 | `/flow [name]` | Process flow diagrams | `/flow deployment` |
 | `/pattern [name]` | Design pattern docs | `/pattern retry-with-backoff` |
-| `/share [path]` | Cross-project knowledge sharing | `/share docs/knowledge-base/topic.md` |
+| `/share [path]` | Cross-project knowledge sharing | `/share kb/02-patterns/topic.md` |
 
 ### Integration & Config
 
@@ -194,14 +195,14 @@ npx skills remove dev-km
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Layer 1: /mem                                                  │
-│  Quick capture → docs/learnings/YYYY-MM/DD/HH.MM_slug.md       │
+│  Quick capture → kb/05-ai-reviewed/learnings/YYYY-MM/DD/...    │
 └─────────────────────────────────────────────────────────────────┘
                          │
                          │ (เมื่อมี 3+ learnings เรื่องเดียวกัน)
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Layer 2: /distill                                              │
-│  Extract patterns → docs/knowledge-base/topic.md               │
+│  Extract patterns → kb/02-patterns/<domain>/topic.md           │
 └─────────────────────────────────────────────────────────────────┘
                          │
                          │ (periodic review)
@@ -297,16 +298,16 @@ project/
 
 ```bash
 # Find by type
-grep -l "type: bugfix" docs/retrospective/**/*.md
+grep -l "type: bugfix" kb/05-ai-reviewed/retrospective/**/*.md
 
 # Search content
-grep -r "mongodb" docs/
+grep -r "mongodb" kb/
 
 # Recent learnings (last 7 days)
-find docs/learnings -name "*.md" -mtime -7
+find kb/05-ai-reviewed/learnings -name "*.md" -mtime -7
 
-# List all decisions
-grep -l "type: decision" docs/retrospective/**/*.md
+# List all decisions (ADRs)
+find kb/04-decisions -name "*.md"
 ```
 
 ## Skill Structure
@@ -336,6 +337,9 @@ dev-km/
 │   │   ├── SKILL.md
 │   │   ├── thread-resolution.md   # GraphQL thread resolve helpers
 │   │   └── copilot-reviews.md     # Copilot review handling
+│   ├── pr-audit/                   # /pr-audit - Reviewer-side deep PR review
+│   │   ├── SKILL.md
+│   │   └── known-patterns.md      # KB-first known patterns (dup-import, etc.)
 │   ├── pr-poll/SKILL.md            # /pr-poll - PR review daemon
 │   ├── cleanup/SKILL.md            # /cleanup - Retention policy
 │   ├── consolidate/SKILL.md        # /consolidate - Session merger
@@ -656,7 +660,7 @@ brew install terminal-notifier
       "matcher": "",
       "hooks": [{
         "type": "command",
-        "command": "[ ! -f docs/retrospective/$(date +%Y-%m)/retrospective_$(date +%Y-%m-%d)_*.md ] && ~/.claude/skills/dev-km/scripts/auto-capture.sh . 2>/dev/null || true"
+        "command": "[ ! -f kb/05-ai-reviewed/retrospective/$(date +%Y-%m)/retrospective_$(date +%Y-%m-%d)_*.md ] && ~/.claude/skills/dev-km/scripts/auto-capture.sh . 2>/dev/null || true"
       }]
     }]
   }
