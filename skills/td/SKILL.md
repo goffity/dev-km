@@ -25,7 +25,7 @@ user-invocable: true
 ## Flow
 
 ```
-/td → Determine Status → Auto-capture → Gather Info → Comment Issue → Create Retrospective → Update Focus → Commit Docs → Confirm
+/td → Determine Status → Auto-capture → Gather Info → Comment Issue → Create Retrospective → Promote to KB (if done+ticket) → Update Focus → Commit Docs → Confirm
 ```
 
 **Note:** สำหรับ tests, build, code review และสร้าง PR ให้ใช้ `/pr` ก่อนรัน `/td`
@@ -151,6 +151,50 @@ EOF
 สร้างไฟล์ `kb/05-ai-reviewed/retrospective/YYYY-MM/retrospective_YYYY-MM-DD_hhmmss.md`
 
 (ใช้ template ด้านล่าง)
+
+### Step 5.5: Promote to KB (canonical)
+
+> **Gate:** ทำเฉพาะเมื่อ `STATE = completed` เท่านั้น. ถ้า `pending`/`blocked` → **ข้าม** (working note ค้างใน `kb/00-inbox/` ต่อ ไว้ promote ตอนเสร็จจริง)
+> เฉพาะงานที่**มี RUAYS ticket**. ถ้า ticketless (เช่น ad-hoc/exploration, `ISSUE` ว่าง/`-`) → **ข้าม** (retro ใน `05-ai-reviewed/` พอแล้ว — promote เข้า 01-projects ทำเฉพาะงานที่ผูก ticket)
+> นี่เป็น judgment step — **Claude ทำเอง** (อ่าน → จัดหมวด → เขียน). อ้างอิง [[PLAYBOOK]] Mode B + C
+
+**5.5.1 — รวบรวม source:**
+
+```bash
+ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+echo "=== inbox working note (breadcrumb จาก SessionEnd hook) ==="
+ls kb/00-inbox/*"$ISSUE"*.md 2>/dev/null
+echo "=== retrospective ที่เพิ่งสร้าง ==="
+ls -t kb/05-ai-reviewed/retrospective/*/retrospective_*.md 2>/dev/null | head -1
+```
+
+อ่าน **inbox note + retrospective ล่าสุด + git diff** เป็นวัตถุดิบ
+
+**5.5.2 — หา primary owner service** (heart of change / ที่ endpoint อยู่ — ดู VAULT-CONVENTIONS multi-repo rule) จาก `service:` ใน inbox frontmatter หรือเดาจากไฟล์ที่แก้
+
+**5.5.3 — เขียน/อัปเดต feature folder** `kb/01-projects/<service>/RUAYS-XXXX/`:
+- MOC `RUAYS-XXXX - <slug>.md` (ขึ้นต้นด้วย 🎯 Status & Next, frontmatter ครบ: project/jira/service/status/type)
+- `Retrospective.md` — สรุปจาก retro ที่เพิ่งสร้าง
+- อัปเดต service MOC `<service>.md` (ตาราง Active Work → ย้ายแถวไป Done)
+
+**5.5.4 — กระจาย learning ตามชนิด** (อันไหนไม่มีก็ข้าม):
+
+| ชนิด | ปลายทาง |
+|---|---|
+| pattern ใช้ซ้ำ ≥ 2 services | `kb/02-patterns/<domain>/<Name>.md` |
+| bug/incident production | `kb/03-bugs/YYYY-MM-DD <system> - <title>.md` |
+| architecture decision | `kb/04-decisions/ADR-NNN-<slug>.md` |
+| retro/analysis reusable | `kb/05-ai-reviewed/...` |
+
+ใช้ `[[wiki-link]]` (ไม่ใช่ path) · frontmatter ตาม VAULT-CONVENTIONS
+
+**5.5.5 — ลบ inbox note** (Mode B ข้อ 4 — กัน stale duplicate):
+
+```bash
+ls "kb/01-projects/<service>/$ISSUE/" && rm "kb/00-inbox/"*"$ISSUE"*.md
+```
+
+> ⚠️ `kb/` = symlink → repo `kol-brain` แยก: **commit/push ที่ `kol-brain` โดยตรง** (ไม่ใช่ kol-architecture)
 
 ### Step 6: Update Focus & Activity Log
 
