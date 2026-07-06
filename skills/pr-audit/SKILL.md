@@ -130,6 +130,10 @@ grep -ri "<keyword>" kb/02-patterns/ kb/03-bugs/ kb/02-patterns/anti-patterns/ 2
 **Known-pattern ที่ต้องระวัง** (ดู [known-patterns.md](known-patterns.md)):
 - **dup-import**: import module path เดียวกันคนละ alias → Go **คอมไพล์ได้** อย่า flag เป็น compile error
   จนกว่าจะ build ยืนยัน (Step 3) — ดู known-patterns.md
+- **money-flow-false-critical**: ก่อน flag CRITICAL double-credit/double-spend/idempotency บน money flow
+  (deposit/withdraw/transfer) → ตรวจ DB constraint จริงรวม **child partition indexes** (partial unique index
+  บน partition ไม่โผล่ที่ parent `pg_indexes` และไม่มีใน ORM tag; ใช้ readonly DB MCP ถ้ามี) + ไล่ atomicity
+  ชั้นล่างสุด (tx wrapper รอบ credit+history-insert → rollback ทำ ordering ปลอดภัย) ก่อนโพสต์ — ดู known-patterns.md
 
 ### Step 6: Compare with Copilot / Other Reviews
 
