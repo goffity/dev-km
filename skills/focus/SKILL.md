@@ -310,7 +310,34 @@ echo "$(date '+%Y-%m-%d %H:%M') | working | [task description] ([issue-id])" >> 
 ./scripts/jira-client.sh assign [ISSUE_KEY] me
 ```
 
-## Step 9: Confirm
+## Step 9: Suggest Session Rename + Color
+
+> `/rename` และ `/color` เป็น **built-in commands** — Claude เรียกเองไม่ได้ ต้องให้ user พิมพ์เอง
+> ดังนั้นให้ปิดท้ายด้วยบรรทัดพร้อม copy-paste เสมอ (ห้ามข้าม)
+
+**เลือกสีตาม type:**
+
+| Type | Color |
+|------|-------|
+| feat | `green` |
+| fix | `red` |
+| refactor | `purple` |
+| perf | `orange` |
+| docs | `blue` |
+| test | `cyan` |
+| infra | `yellow` |
+| chore | `pink` |
+
+**แสดงท้าย output (ปรับ session name ให้สั้น อ่านง่าย ขึ้นต้นด้วย issue id):**
+
+```
+ตั้งชื่อ + สี session (copy วางได้เลย):
+
+/rename [ISSUE-ID] [short task name]
+/color [color-by-type]
+```
+
+## Step 10: Confirm
 
 **For GitHub:**
 ```markdown
@@ -328,6 +355,11 @@ SINCE: [timestamp]
 - [ ] [criteria 1]
 - [ ] [criteria 2]
 - [ ] [criteria 3]
+
+ตั้งชื่อ + สี session (copy วางได้เลย):
+
+/rename #[issue-number] [short task name]
+/color [color-by-type]
 
 พร้อมเริ่มงาน! ใช้ `/td` เมื่อจบ session
 ```
@@ -347,6 +379,11 @@ SINCE: [timestamp]
 
 Status: In Progress
 Assigned to: you
+
+ตั้งชื่อ + สี session (copy วางได้เลย):
+
+/rename [ISSUE_KEY] [short task name]
+/color [color-by-type]
 
 พร้อมเริ่มงาน! ใช้ `/td` เมื่อจบ session
 ```
