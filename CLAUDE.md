@@ -64,7 +64,7 @@ Defined in `hooks.json` and `.claude/settings.json`:
 - This is a pure shell + markdown project. No build system, no package.json, no Makefile, no tests.
 - Skills are markdown-only (`SKILL.md` files) — they contain instructions that Claude Code interprets.
 - Scripts are bash (`scripts/*.sh`) with security measures: path validation (reject `..`), input sanitization in `notify.sh`.
-- The `/commit` skill delegates to `tdg:atomic` (an external TDG skill dependency).
+- The `/commit` skill is self-contained (atomic-commit workflow inlined) and TDD-aware — it defers to the `/tdd` loop's commit convention when a red/green cycle is in progress.
 - The `/pr` skill expects target projects to have `make test` and `make build` — these are run in the user's project, not in dev-km itself.
 - Commit messages use conventional format (`feat|fix|refactor|docs|test|chore|perf|style`) with no footer.
 

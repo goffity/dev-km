@@ -104,7 +104,7 @@
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `/commit` | Atomic commit (via tdg:atomic) | `/commit` |
+| `/commit` | Atomic commit (TDD-aware, self-contained) | `/commit` |
 | `/pr` | Test + Build + Review + Create PR | `/pr` |
 | `/review` | Manual code review | `/review` |
 | `/pr-review` | Handle PR review feedback | `/pr-review [pr-number]` |

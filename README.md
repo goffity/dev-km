@@ -72,7 +72,7 @@ npx skills remove dev-km
 
 | Command | Purpose | Usage |
 |---------|---------|-------|
-| `/commit` | Atomic commits (via TDG) | `/commit` |
+| `/commit` | Atomic commits (TDD-aware, self-contained) | `/commit` |
 | `/pr` | Test + Build + Review + Create PR + Auto-respond | `/pr` |
 | `/review` | Manual code review | `/review` |
 | `/pr-review` | ตอบ PR feedback (PR ของตัวเอง) | `/pr-review` |

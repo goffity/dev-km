@@ -378,7 +378,7 @@ Skill(skill-name)        # Allow skill
       "Bash(npm run test:*)",
       "Bash(git push)",
       "Bash(make:*)",
-      "Skill(tdg:atomic-commit)"
+      "Skill(commit)"
     ],
     "deny": [
       "Bash(rm -rf:*)"

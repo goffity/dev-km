@@ -11,7 +11,7 @@ user-invocable: false
 ## Dev Flow
 
 ```
-/recap → /focus (issue + branch) → tdg:tdg (dev + commit) → /td (retrospective) + /mem (capture knowledge)
+/recap → /focus (issue + branch) → /tdd (red-green loop) + /commit → /td (retrospective) + /mem (capture knowledge)
 ```
 
 ## Core Skills (user-invocable)
@@ -29,7 +29,7 @@ user-invocable: false
 
 | Skill | Purpose |
 |-------|---------|
-| `/commit` | Atomic commits via TDG |
+| `/commit` | Atomic commits (TDD-aware, self-contained) |
 | `/pr` | Tests, build, review, create PR |
 | `/review` | Code review before push |
 | `/pr-review` | Handle PR review feedback (own PR) |
