@@ -146,6 +146,37 @@ gh api repos/{owner}/{repo}/pulls/$PR/comments --jq '.[] | {id, path, line, user
 - **ตัด finding ที่ซ้ำ** กับ Copilot/reviewer อื่น (ไม่โพสต์ซ้ำ)
 - **ที่ไม่เห็นด้วย** → reply ที่ comment นั้นโดยตรงพร้อม **หลักฐาน** (build log / file:line / KB entry)
 
+### Step 6.5: Resolve Verified-Fixed Threads (re-audit — เมื่อ author แก้ตามรอบก่อนแล้ว)
+
+เมื่อ **re-audit** PR ที่เคย audit ไปแล้ว (มี inline thread ของเราค้าง) และ author ตอบ `Fixed in <commit>`:
+
+1. **Delta-first** — audit เฉพาะส่วนที่เปลี่ยนตั้งแต่ SHA ที่ audit รอบก่อน (`git diff <prev_audited_sha>..HEAD --stat`) แทน re-run ทั้ง PR; แต่ยัง build/test บน HEAD ปัจจุบันเสมอ (Step 3)
+2. **Verify ทุก thread กับโค้ด HEAD ก่อนเสมอ** — อย่าเชื่อคำเคลม "Fixed" ลอยๆ; อ่านโค้ด/รัน test ยืนยันว่า fix นั้นแก้ finding เดิมจริง (money-flow → ยังต้องผ่าน DB check ของ Step 5)
+3. **Resolve เฉพาะที่พิสูจน์ได้** ผ่าน GraphQL `resolveReviewThread` (REST ไม่มี resolve)
+4. **ห้าม resolve** thread ที่ author แค่ `Acknowledged / deferred / by-design / จะแยก ticket` — พวกนี้เป็น **open decision/limitation ไม่ใช่ fix**; ปล่อย unresolved ไว้ให้เห็น แล้วสรุปเป็น follow-up ใน summary
+
+```bash
+# 1) list unresolved threads + author replies (แยก resolved จริง vs ค้าง)
+gh api graphql -f query='
+{ repository(owner:"<owner>", name:"<repo>") {
+    pullRequest(number:<PR>) {
+      reviewThreads(first:50){ nodes{
+        id isResolved isOutdated path line
+        comments(first:10){ nodes{ author{login} body } }
+      }}}}}' --jq '.data.repository.pullRequest.reviewThreads.nodes[]
+        | select(.isResolved==false)
+        | {id, path, line, finding: .comments.nodes[0].body[0:120],
+           replies: [.comments.nodes[1:][] | "(\(.author.login)) \(.body[0:160])"]}'
+
+# 2) resolve เฉพาะ thread ที่ verify แล้ว — เรียกแยกทีละ id
+gh api graphql -f query='mutation($id: ID!){
+  resolveReviewThread(input:{threadId:$id}){ thread{ id isResolved } }
+}' -f id="<PRRT_thread_id>"
+```
+
+> **Shell caveat:** อย่าใช้ loop `for x in $VAR` กับ thread id หลายตัว — fish/bash word-split ต่างกัน ทำให้ id ทั้งชุดถูกส่งเป็น id เดียว (`NOT_FOUND`); เรียก mutation แยกทีละ id ปลอดภัยสุด
+> สรุปใน chat/summary ว่า resolve อันไหนบ้าง (พร้อมหลักฐาน) + คงอันไหนไว้ (เพราะเป็น open item) เพื่อ trace
+
 ### Step 7: Output
 
 #### Mode = review (ดูอย่างเดียว)
@@ -221,6 +252,7 @@ git stash pop 2>/dev/null || true   # คืน working tree เดิม
 | ห้าม commit ลง main/develop | ไม่มี commit ในการ audit |
 | cleanup worktree เสมอ | แม้ build ล้มเหลว (Step 8) |
 | GitHub comments | submitted review ลบไม่ได้ (แก้ body ได้), inline ลบได้ |
+| resolve thread ต้อง verify ก่อน | resolve เฉพาะ thread ที่พิสูจน์ว่าแก้จริงในโค้ด HEAD (Step 6.5); ห้าม resolve open item ที่ author แค่ acknowledge/defer/by-design |
 
 ## Reuse (ห้ามเขียน heuristic ซ้ำ)
 
