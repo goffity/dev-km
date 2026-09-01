@@ -10,7 +10,7 @@ Steps to execute after PR is created successfully.
 
 ```bash
 # Get script directory and working directory
-SKILL_DIR="${HOME}/.claude/skills/dev-km"
+SKILL_DIR="${HOME}/.claude/skills/pr-poll"
 WORKING_DIR="$(pwd)"
 
 # Check if daemon already running
