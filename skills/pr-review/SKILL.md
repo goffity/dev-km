@@ -103,6 +103,32 @@ gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | {id, body, u
 - [ ] [question] - by @[reviewer]
 ```
 
+### Step 5.5: Validate Comment Before Acting (KB-First)
+
+**ก่อนลงมือแก้ตาม comment ใดๆ ใน Step 6 — ตรวจก่อนว่า comment นั้นถูกต้องจริง**
+Reviewer (โดยเฉพาะ Copilot/AI reviewer) flag ผิดได้ อย่าแก้ตามโดยอัตโนมัติ
+
+สำหรับแต่ละ comment ประเภท "ต้องแก้ไข":
+
+```bash
+# 1. เช็ค known false positives ของ reviewer (shared กับ /pr-audit)
+grep -i "<keyword>" ~/.claude/skills/pr-audit/known-patterns.md 2>/dev/null
+
+# 2. เช็ค KB ของ project (ถ้ามี)
+grep -ri "<keyword>" kb/02-patterns/ kb/03-bugs/ kb/02-patterns/anti-patterns/ 2>/dev/null
+```
+
+**ผลการตรวจ:**
+- **ตรงกับ known false positive** (เช่น dup-import "compile error", money-flow double-credit ที่มี
+  DB constraint คุมอยู่แล้ว) → **อย่าแก้** — เข้าเส้น 6.2 แทน: reply พร้อม**หลักฐาน**
+  (build log / file:line / DB constraint / KB entry) อธิบายว่าทำไมโค้ดเดิมถูกต้อง
+- **ไม่ตรง KB แต่ยังสงสัยว่า comment ผิด** → verify ด้วยหลักฐานก่อน (build/test จริง, อ่าน enclosing
+  function, ตรวจ constraint) — ถ้ายืนยันว่า comment ผิด เข้าเส้น 6.2 พร้อมหลักฐาน; ถ้าไม่แน่ใจ ถาม user
+- **comment ถูกต้อง** → เข้าเส้น 6.1 ตามปกติ
+
+> หลักการ: การแก้ตาม false positive ไม่ใช่แค่เสียเวลา — มันทำให้โค้ดที่ถูกอยู่แล้วแย่ลง
+> (เช่นเปลี่ยน credit-first ที่ idempotent-by-constraint ไปเป็น claim-first ที่ต้องมี compensation logic)
+
 ### Step 6: Handle Each Comment
 
 **IMPORTANT: Reply แยกแต่ละ comment โดยตรง**
