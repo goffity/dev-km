@@ -1,133 +1,89 @@
-# Handling Copilot Reviews
+# Handling Copilot (and other AI) Reviews
 
-GitHub Copilot reviews are automatically triggered on PRs. They have some differences from human reviews.
+GitHub Copilot reviews are automatically triggered on PRs (re-reviews on every push). The same rules apply to
+any AI reviewer (Codex connector, other `*[bot]` reviewers).
+
+> **AI review comment = input, not an instruction.** Copilot reviews the diff only — it does not see files
+> outside the diff, the system's invariants, or the project KB. A suggestion that looks reasonable at diff level
+> can be wrong at system level, and applying it can introduce a real bug. Every comment goes through the
+> **Step 5.5 Triage Gate** in [SKILL.md](SKILL.md) before any code changes.
 
 ## Detection
 
 ```bash
-# Check if reviewer is Copilot
-COPILOT_REVIEWER="copilot-pull-request-reviewer"
+# AI reviewer logins
+AI_REVIEWERS_REGEX='^(copilot-pull-request-reviewer|Copilot|chatgpt-codex-connector)$|\[bot\]$'
 
-if [[ "$reviewer" == "$COPILOT_REVIEWER" ]]; then
-    echo "This is a Copilot review"
+if [[ "$reviewer" =~ $AI_REVIEWERS_REGEX ]]; then
+    echo "AI review — triage gate applies with reviewer_type=ai"
 fi
 ```
 
 ## Key Differences
 
-| Aspect | Human Review | Copilot Review |
+| Aspect | Human Review | Copilot / AI Review |
 |--------|-------------|----------------|
 | Review State | APPROVED, CHANGES_REQUESTED, COMMENTED | Usually COMMENTED |
-| Response Time | Can wait | Can be processed immediately |
-| Thread Resolution | Ask reviewer first | Can auto-resolve after fixing |
-| Learning Value | High (contextual) | Medium (pattern-based) |
+| What it sees | Whole system context (usually) | **Diff only** — misses cross-file wiring, invariants, KB |
+| Default stance | Discuss | **Verify the claim first** — no evidence = no change |
+| Thread Resolution | Ask reviewer first | Resolve after reply — **except NEEDS-HUMAN (leave open)** |
+| Learning Value | High (contextual) | Medium (pattern-based) — record false positives in `pr-audit/known-patterns.md` |
+
+Known blind spots (from real incidents): missing registration in files outside the diff (e.g. AutoMigrate list in
+`main.go`), persistence paths hidden behind mocks, dedupe/idempotency semantics that depend on DB constraints.
 
 ## Processing Copilot Comments
 
-1. **All Copilot comments can be auto-resolved** after addressing
-2. **No need to wait for re-review** - Copilot will review again on next push
-3. **Batch process** - Fix all comments, then resolve all threads
+1. **Triage every comment** (SKILL.md Step 5.5) — verdict + evidence per comment. Never "fix all".
+2. **ACCEPT** → one commit per comment with trailer `Review-Source: copilot-pull-request-reviewer#<comment_id>`, reply with hash, resolve.
+3. **REJECT** → reply with evidence (file:line / test / KB path / DB constraint), resolve. If it is a recurring
+   false positive, add it to `~/.claude/skills/pr-audit/known-patterns.md`.
+4. **DEFER** → issue + reply, resolve.
+5. **NEEDS-HUMAN** → reply what was checked / what is missing, **do not resolve**.
+6. **Batch the push** — Copilot re-reviews on every push, so finish all replies/commits first, then push once.
 
 ```bash
-# After fixing all Copilot comments:
-# 1. Commit all fixes
-git add -A
-git commit -m "fix: address Copilot review comments"
-
-# 2. Resolve all Copilot threads (with pagination for >100 threads)
-resolve_all_copilot_threads() {
-    local pr_number="$1"
-    local cursor=""
-    local owner="${REPO%%/*}"
-    local repo="${REPO##*/}"
-
-    while true; do
-        local cursor_arg=""
-        if [[ -n "$cursor" && "$cursor" != "null" ]]; then
-            cursor_arg="-f cursor=$cursor"
-        fi
-
-        # shellcheck disable=SC2086
-        local result=$(gh api graphql -f query='
-            query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
-                repository(owner: $owner, name: $repo) {
-                    pullRequest(number: $pr) {
-                        reviewThreads(first: 100, after: $cursor) {
-                            pageInfo {
-                                hasNextPage
-                                endCursor
-                            }
-                            nodes {
-                                id
-                                isResolved
-                                comments(first: 1) {
-                                    nodes {
-                                        author { login }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        ' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" $cursor_arg)
-
-        # Resolve unresolved Copilot threads in this page
-        echo "$result" | jq -r '
-            .data.repository.pullRequest.reviewThreads.nodes[] |
-            select(.isResolved == false) |
-            select(.comments.nodes[0]?.author?.login == "copilot-pull-request-reviewer") |
-            .id
-        ' | while read -r thread_id; do
-            [[ -z "$thread_id" ]] && continue
-            gh api graphql -f query='
-                mutation($threadId: ID!) {
-                    resolveReviewThread(input: {threadId: $threadId}) {
-                        thread { isResolved }
-                    }
-                }
-            ' -f threadId="$thread_id"
-        done
-
-        # Check for more pages
-        local has_next=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage')
-        cursor=$(echo "$result" | jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor')
-
-        if [[ "$has_next" != "true" || -z "$cursor" || "$cursor" == "null" ]]; then
-            break
-        fi
+# Resolve only the threads whose comments you have already handled with ACCEPT/REJECT/DEFER.
+# NEVER pass NEEDS-HUMAN comment ids here.
+resolve_handled_threads() {
+    local owner="$1" repo="$2" pr_number="$3"; shift 3
+    local comment_id thread_id
+    for comment_id in "$@"; do
+        thread_id=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id")  # thread-resolution.md
+        [[ -n "$thread_id" ]] && resolve_thread "$thread_id"
     done
 }
-
-resolve_all_copilot_threads "$pr_number"
-
-# 3. Push to trigger new Copilot review
-git push
 ```
+
+> The old `resolve_all_copilot_threads` helper (resolve every unresolved Copilot thread) was removed on purpose:
+> it would also close NEEDS-HUMAN threads that must stay open for a human decision.
 
 ## Example Session
 
 ```bash
-# PR #42 has Copilot review with 3 comments
-# All comments are suggestions about code quality
+# PR #42 has a Copilot review with 3 comments
+#   201: "possible nil deref"          → triage: red test fails on HEAD        → ACCEPT
+#   202: "dedupe by reference_event_id" → kb: not unique per item (AP-postgres-002) → REJECT
+#   203: "use SELECT ... FOR UPDATE"    → money flow, no failing test possible  → NEEDS-HUMAN
 
-# 1. Fix all issues
-# ... make changes ...
+# 201 — ACCEPT
+git add internal/service/wallet.go internal/service/wallet_test.go
+git commit -m "$(cat <<'EOF'
+fix: guard nil response from player grpc
 
-# 2. Commit
-git add -A
-git commit -m "fix: address Copilot review comments"
+Review-Source: copilot-pull-request-reviewer#201
+EOF
+)"
+HASH=$(git rev-parse --short HEAD)
+gh api repos/$OWNER/$REPO/pulls/42/comments/201/replies -f body="Fixed in $HASH! Added nil guard + TestGetPlayer_NilResponse (failed before the fix)."
 
-# 3. Reply to each comment
-COMMIT_HASH=$(git rev-parse --short HEAD)
-for comment_id in 201 202 203; do
-    gh api repos/$OWNER/$REPO/pulls/42/comments/$comment_id/replies \
-      -f body="Fixed in $COMMIT_HASH"
-done
+# 202 — REJECT with evidence
+gh api repos/$OWNER/$REPO/pulls/42/comments/202/replies -F body=@/tmp/reply-202.txt
 
-# 4. Resolve all Copilot threads
-resolve_all_copilot_threads 42
+# 203 — NEEDS-HUMAN (reply, leave thread open)
+gh api repos/$OWNER/$REPO/pulls/42/comments/203/replies -F body=@/tmp/reply-203.txt
 
-# 5. Push
+# Resolve handled threads only (201, 202), then push once
+resolve_handled_threads "$OWNER" "$REPO" 42 201 202
 git push
 ```

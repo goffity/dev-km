@@ -103,31 +103,83 @@ gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '.[] | {id, body, u
 - [ ] [question] - by @[reviewer]
 ```
 
-### Step 5.5: Validate Comment Before Acting (KB-First)
+### Step 5.5: Triage Gate — ทุก comment ต้องมีคำตัดสินพร้อมหลักฐานก่อนแตะโค้ด (MANDATORY)
 
-**ก่อนลงมือแก้ตาม comment ใดๆ ใน Step 6 — ตรวจก่อนว่า comment นั้นถูกต้องจริง**
-Reviewer (โดยเฉพาะ Copilot/AI reviewer) flag ผิดได้ อย่าแก้ตามโดยอัตโนมัติ
+**Reviewer comment = input ไม่ใช่คำสั่ง** — โดยเฉพาะ AI reviewer (Copilot, Codex, bot อื่น) ที่เห็นแค่ diff
+ไม่รู้ invariant ของระบบ ข้อเสนอที่ "ฟังดูมีเหตุผล" ในระดับ diff อาจผิดในระดับระบบ
+การแก้ตาม comment ที่ผิดไม่ใช่แค่เสียเวลา — มันทำให้โค้ดที่ถูกอยู่แล้วแย่ลงและเกิด bug จริงได้
+(เช่นเปลี่ยน credit-first ที่ idempotent-by-constraint ไปเป็น claim-first ที่ต้องมี compensation logic)
 
-สำหรับแต่ละ comment ประเภท "ต้องแก้ไข":
+**ห้ามเข้า Step 6 จนกว่าตาราง triage (5.5.4) จะครบทุก comment**
 
-```bash
-# 1. เช็ค known false positives ของ reviewer (shared กับ /pr-audit)
-grep -i "<keyword>" ~/.claude/skills/pr-audit/known-patterns.md 2>/dev/null
+#### 5.5.1 ระบุ reviewer type และโหมด
 
-# 2. เช็ค KB ของ project (ถ้ามี)
-grep -ri "<keyword>" kb/02-patterns/ kb/03-bugs/ kb/02-patterns/anti-patterns/ 2>/dev/null
+- `reviewer_type`: `human` | `ai` (`copilot-pull-request-reviewer`, `Copilot`, `chatgpt-codex-connector`, `*[bot]` = ai)
+- `mode`: `interactive` (มี user ตอบได้) | `headless` (รันผ่าน `claude --print`, pr-poll daemon, หรือ prompt มี `[HEADLESS]`)
+
+#### 5.5.2 ตรวจ comment ด้วยหลักฐาน (ทำทีละ comment)
+
+1. **อ่านโค้ดจริงให้ครบ context** — ไม่ใช่แค่บรรทัดที่ถูก comment: อ่าน enclosing function ทั้งตัว + caller
+   (`grep -rn "<func>"`) + ไฟล์ที่ไม่อยู่ใน diff แต่เกี่ยวข้อง (wiring, migration, main.go)
+2. **เช็ค known false positives + KB**
+   ```bash
+   grep -i "<keyword>" ~/.claude/skills/pr-audit/known-patterns.md 2>/dev/null
+   grep -ril "<keyword>" kb/02-patterns/ kb/03-bugs/ kb/04-decisions/ 2>/dev/null
+   ```
+3. **ยืนยันข้อกล่าวอ้างของ reviewer** — reviewer บอกว่า "X จะพัง" ต้องพิสูจน์ได้ว่าพังจริง
+   (build/test จริง, เขียน test ที่ fail บนโค้ดปัจจุบัน, หรือชี้ `file:line` ที่ทำให้เกิดปัญหา)
+   ถ้าพิสูจน์ไม่ได้ = **ไม่มีหลักฐานว่าต้องแก้**
+4. **เช็ค scope** — ข้อเสนอที่เปลี่ยน behavior นอกเหนือจุดประสงค์ของ PR → DEFER ไม่ใช่แก้ในนี้
+
+#### 5.5.3 Risk zone — เกณฑ์เข้มขึ้น
+
+ถ้าการแก้จะแตะเรื่องใดต่อไปนี้ = **risk zone**:
+
+| Zone | ตัวอย่าง |
+|------|----------|
+| Money flow | balance update, credit/debit, settle, bet, deposit/withdraw, ledger |
+| Idempotency / dedupe | unique key, reference id, retry, "กันซ้ำ" |
+| Concurrency | lock, transaction boundary, ลำดับ claim/credit, goroutine, race |
+| Data layer | SQL/GORM query, migration, index, schema, Mongo filter/update operator |
+| Contract | proto/gRPC, REST response shape, Kafka message/topic, consumer offset/retry |
+| Auth / security | token, permission, input validation ที่ขอบระบบ |
+
+ใน risk zone **ACCEPT ได้ก็ต่อเมื่อ**:
+- มี test ที่ **fail บนโค้ดปัจจุบัน** และ pass หลังแก้ (red → green) — ถ้าเขียน test แบบนี้ไม่ได้ แปลว่ายังพิสูจน์ไม่ได้ว่ามีปัญหา
+- ถ้า project มี kb: อ่าน pattern/AP ของ zone นั้นแล้ว (เช่น money flow → `kb/02-patterns/postgres/Wallet Ledger Dedup via Partition Unique Index.md` + grep `AP-postgres-002` ใน `kb/02-patterns/anti-patterns/`) และการแก้ไม่ขัดกับมัน
+
+ไม่ผ่านเงื่อนไข → `NEEDS-HUMAN` (ห้ามแก้เอง)
+
+**ข้อยกเว้น:** การแก้ที่**ไม่เปลี่ยน behavior** (rename, comment, log message, เพิ่ม/เข้ม assertion ใน test เดิม)
+ไม่ต้องมี red test — แต่ต้อง build + test ผ่าน และระบุใน "หลักฐาน" ว่า `no behavior change`
+
+#### 5.5.4 คำตัดสิน (ต้องเลือก 1 ต่อ comment)
+
+| Verdict | เงื่อนไข | ไปที่ |
+|---------|----------|------|
+| `ACCEPT` | ยืนยันด้วยหลักฐาน (5.5.2 ข้อ 3) ว่าปัญหามีจริง + ถ้า risk zone ผ่าน 5.5.3 | 6.1 |
+| `REJECT` | หลักฐานชี้ว่าโค้ดเดิมถูก / ขัด invariant, KB, ADR / known false positive | 6.2 (reply พร้อมหลักฐาน) |
+| `DEFER` | ปัญหามีจริงแต่อยู่นอก scope PR | 6.5 |
+| `NEEDS-HUMAN` | หลักฐานไม่พอทั้งสองทาง, risk zone ที่ไม่มี red test, หรือขัดกันระหว่าง reviewer | 6.7 |
+| `ANSWER` / `ACK` | คำถาม / คำชม | 6.3 / 6.4 |
+
+แสดงตารางนี้**ก่อน**ลงมือ Step 6:
+
+```markdown
+## Triage
+| # | Reviewer (type) | file:line | ข้อกล่าวอ้าง | Risk zone | หลักฐาน | Verdict |
+|---|-----------------|-----------|--------------|-----------|---------|---------|
+| 1 | @copilot (ai) | wallet.go:120 | race บน balance | Money flow | red test `TestX` fail บน HEAD | ACCEPT |
+| 2 | @copilot (ai) | repo.go:88 | ควร dedupe ด้วย reference_event_id | Idempotency | kb: reference_event_id ไม่ unique ต่อรายการ | REJECT |
 ```
 
-**ผลการตรวจ:**
-- **ตรงกับ known false positive** (เช่น dup-import "compile error", money-flow double-credit ที่มี
-  DB constraint คุมอยู่แล้ว) → **อย่าแก้** — เข้าเส้น 6.2 แทน: reply พร้อม**หลักฐาน**
-  (build log / file:line / DB constraint / KB entry) อธิบายว่าทำไมโค้ดเดิมถูกต้อง
-- **ไม่ตรง KB แต่ยังสงสัยว่า comment ผิด** → verify ด้วยหลักฐานก่อน (build/test จริง, อ่าน enclosing
-  function, ตรวจ constraint) — ถ้ายืนยันว่า comment ผิด เข้าเส้น 6.2 พร้อมหลักฐาน; ถ้าไม่แน่ใจ ถาม user
-- **comment ถูกต้อง** → เข้าเส้น 6.1 ตามปกติ
+**ช่อง "หลักฐาน" ห้ามว่าง** และห้ามเป็นความเห็น ("ดูสมเหตุสมผล", "reviewer พูดถูก") — ต้องเป็น
+test/build output, `file:line`, KB/ADR path, หรือ DB constraint
 
-> หลักการ: การแก้ตาม false positive ไม่ใช่แค่เสียเวลา — มันทำให้โค้ดที่ถูกอยู่แล้วแย่ลง
-> (เช่นเปลี่ยน credit-first ที่ idempotent-by-constraint ไปเป็น claim-first ที่ต้องมี compensation logic)
+**โหมด:**
+- `interactive` + มี `NEEDS-HUMAN` → ถาม user ด้วยตารางนี้ก่อนทำต่อ (comment อื่นทำต่อได้)
+- `headless` → **ห้าม** ACCEPT ใน risk zone เว้นแต่ red test พิสูจน์แล้ว, ที่เหลือเป็น `NEEDS-HUMAN` ทั้งหมด (ไม่มีคนให้ถาม = ไม่เดา)
+- ไม่ว่าโหมดไหน **ห้ามใช้ "reviewer เห็นด้วยกันหลายตัว" แทนหลักฐาน**
 
 ### Step 6: Handle Each Comment
 
@@ -136,18 +188,25 @@ grep -ri "<keyword>" kb/02-patterns/ kb/03-bugs/ kb/02-patterns/anti-patterns/ 2
 - ห้ามสร้าง comment ใหม่แยกต่างหาก
 - ต้อง reply ไปที่ comment นั้นๆ โดยตรงเท่านั้น
 
-> **Language:** reply bodies ด้านล่าง (6.1–6.5) เป็น template ภาษาอังกฤษ — ถ้า `LANGUAGE: th` ใน `docs/current.md` ให้แปลตามตาราง "**/pr-review Reply Templates (6.1–6.5)**" ใน [language-guide.md](../../references/language-guide.md) ส่วน commit message คงเป็น English เสมอ
+> **Language:** reply bodies ด้านล่าง (6.1–6.7) เป็น template ภาษาอังกฤษ — ถ้า `LANGUAGE: th` ใน `docs/current.md` ให้แปลตามตาราง "**/pr-review Reply Templates (6.1–6.7)**" ใน [language-guide.md](../../references/language-guide.md) ส่วน commit message คงเป็น English เสมอ
 
 **Thread Resolution:** ใช้ helper functions จาก [thread-resolution.md](thread-resolution.md) — `get_thread_id_for_comment(owner, repo, pr_number, comment_id)` และ `resolve_thread(thread_id)`
 
 สำหรับ **แต่ละ comment** ให้ทำแยกกัน:
 
-#### 6.1 Comment ที่ต้องแก้ไข
+#### 6.1 Comment ที่ต้องแก้ไข (Verdict = ACCEPT เท่านั้น)
 
 ```bash
-# 1. แก้โค้ดตาม review comment แล้ว commit
-git add .
-git commit -m "fix: [short description of fix]"
+# 1. แก้โค้ดตาม review comment แล้ว commit — stage เฉพาะไฟล์ที่แก้ (ห้าม git add .)
+#    ใส่ trailer Review-Source เพื่อไล่ย้อนได้ว่าการแก้ไหนมาจาก reviewer ไหน
+#    (ถ้า bug เกิดทีหลัง: git log --grep "Review-Source: copilot" จะเจอทันที)
+git add <files-changed-for-this-comment>
+git commit -m "$(cat <<'EOF'
+fix: [short description of fix]
+
+Review-Source: [reviewer-login]#[comment_id]
+EOF
+)"
 
 # 2. เก็บ hash ของ commit ที่เพิ่ง commit
 COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -163,7 +222,8 @@ THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id
 ```
 
 **หมายเหตุ:**
-- ถ้าแก้หลาย comments ใน commit เดียว ทุก reply จะใช้ hash เดียวกัน
+- 1 comment = 1 commit เป็น default (revert ทีละข้อได้ถ้าข้อไหนทำให้เกิด bug) — ถ้าจำเป็นต้องรวมหลาย comments ใน commit เดียว ใส่ `Review-Source:` ครบทุกตัว (1 บรรทัดต่อ comment) และทุก reply ใช้ hash เดียวกัน
+- risk zone: commit ต้องมี test ที่พิสูจน์ใน 5.5.3 อยู่ด้วย
 - สำหรับ reply ที่มี user content หรือ special characters ใช้ `-F` flag กับ temp file แทน:
 
 ```bash
@@ -178,7 +238,9 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 rm /tmp/reply.txt
 ```
 
-#### 6.2 Comment ที่ไม่ต้องแก้ไข
+#### 6.2 Comment ที่ไม่ต้องแก้ไข (Verdict = REJECT)
+
+Reply ต้องมี**หลักฐาน**จากตาราง triage (test/build output, `file:line`, KB/ADR path, DB constraint) — ไม่ใช่แค่ความเห็น
 
 ```bash
 # Reply ไปที่ comment_id นั้นโดยตรง (ห้ามรวมกับ comment อื่น)
@@ -186,6 +248,8 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
   -f body="Thanks for the suggestion!
 
 [explanation why not changing]
+
+Evidence: [file:line / test output / KB path / DB constraint]
 
 [alternative approach if applicable]"
 
@@ -277,9 +341,25 @@ THREAD_ID=$(get_thread_id_for_comment "$owner" "$repo" "$pr_number" "$comment_id
 | "Documentation could be improved" | `docs: improve documentation for [feature]` | `enhancement` |
 | "Performance could be better" | `perf: optimize [operation]` | `enhancement` |
 
+#### 6.7 Comment ที่ต้องให้คนตัดสิน (Verdict = NEEDS-HUMAN)
+
+**ห้ามแก้โค้ด และห้าม resolve thread** — ปล่อย thread เปิดไว้ให้คนตัดสิน
+
+```bash
+# Reply อธิบายว่าหลักฐานมีแค่ไหน ขาดอะไร (ใช้ -F body=@file สำหรับ content ยาว)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
+  -f body="Needs human decision — not applied automatically.
+
+What was checked: [evidence gathered]
+What is missing: [e.g. no failing test reproduces the claim / touches money flow]"
+```
+
+- `interactive`: ถาม user ต่อทันทีพร้อมตาราง triage แถวนั้น แล้วทำตามคำตัดสิน (เปลี่ยน verdict → 6.1/6.2/6.5)
+- `headless`: จบแค่ reply — ใส่ไว้ใน Final Summary ช่อง `Needs human` เพื่อให้คนมาดู
+
 #### 6.6 Verify All Threads Resolved
 
-หลังจาก reply + resolve ทุก comment แล้ว ตรวจสอบว่าไม่มี unresolved threads เหลืออยู่:
+หลังจาก reply + resolve ทุก comment แล้ว ตรวจสอบว่าไม่มี unresolved threads เหลืออยู่ — **ยกเว้น** thread ที่เป็น `NEEDS-HUMAN` (ต้องค้างไว้โดยตั้งใจ ให้จำนวน unresolved เท่ากับจำนวน NEEDS-HUMAN พอดี):
 
 ```bash
 # Check for any remaining unresolved threads
@@ -296,8 +376,9 @@ UNRESOLVED=$(gh api graphql -f query='
 ' -f owner="$owner" -f repo="$repo" -F pr="$pr_number" \
   --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')
 
-if [[ "$UNRESOLVED" -gt 0 ]]; then
-    echo "Warning: $UNRESOLVED unresolved threads remaining"
+NEEDS_HUMAN=[count of NEEDS-HUMAN verdicts from triage table]
+if [[ "$UNRESOLVED" -ne "$NEEDS_HUMAN" ]]; then
+    echo "Warning: $UNRESOLVED unresolved threads, expected $NEEDS_HUMAN (NEEDS-HUMAN)"
     # See thread-resolution.md for batch resolution helpers
 fi
 ```
@@ -359,16 +440,18 @@ git push
 **Reviewer**: @[reviewer] ([reviewer_type: human/copilot])
 
 ### Actions Taken
-| Comment | Action | Status | Thread |
-|---------|--------|--------|--------|
-| [comment 1] | Fixed (commit hash) | Done | Resolved |
-| [comment 2] | Replied | Done | Resolved |
-| [comment 3] | Deferred → #[issue] | Done | Resolved |
+| Comment | Verdict | Evidence | Action | Thread |
+|---------|---------|----------|--------|--------|
+| [comment 1] | ACCEPT | [test/file:line] | Fixed (commit hash) | Resolved |
+| [comment 2] | REJECT | [KB path/file:line] | Replied | Resolved |
+| [comment 3] | DEFER | — | Deferred → #[issue] | Resolved |
+| [comment 4] | NEEDS-HUMAN | [what is missing] | Replied | **Open** |
 
 ### Stats
-Total: [N] | Fixed: [N] | Replied: [N] | Deferred: [N] | Threads: [N]/[N]
+Total: [N] | Accept: [N] | Reject: [N] | Defer: [N] | Needs human: [N] | Threads resolved: [N]/[N]
 
 ### Next Steps
+- [ ] Decide NEEDS-HUMAN threads: [links]
 - [ ] Wait for re-review → `/pr-review` if new comments
 - [ ] Work on deferred issues: #[number]
 ```

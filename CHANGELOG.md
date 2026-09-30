@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **`/pr-review` Triage Gate (Step 5.5)** — every review comment (human or AI) now gets a verdict
+  (`ACCEPT` / `REJECT` / `DEFER` / `NEEDS-HUMAN`) backed by evidence (test/build output, `file:line`, KB/ADR path,
+  DB constraint) before any code change. Risk zones (money flow, idempotency, concurrency, data layer, contracts,
+  auth) require a test that fails on the current code before accepting. Replaces the keyword-grep-only KB check.
+  - New **6.7 NEEDS-HUMAN** path: reply with what was checked / what is missing, leave the thread open.
+  - **6.1** commits one fix per comment, stages only the files touched (no `git add .`), and adds a
+    `Review-Source: <reviewer>#<comment_id>` trailer so review-driven changes can be traced if they cause a bug.
+  - **6.6** expects unresolved threads == NEEDS-HUMAN count; Final Summary reports verdict + evidence per comment.
+  - **Headless mode** (`claude --print`, pr-poll daemon): uncertain or risk-zone comments without a red test become NEEDS-HUMAN instead of being applied.
+- **`copilot-reviews.md`** — dropped "fix all comments, then resolve all threads"; AI comments go through the triage
+  gate. Removed `resolve_all_copilot_threads` (it would also close NEEDS-HUMAN threads) in favour of `resolve_handled_threads`.
+- **pr-poll auto-respond prompt** marks the run `[HEADLESS]` and points at the headless triage rules.
+
 ## [0.25.0] - 2026-06-19
 
 ### Added

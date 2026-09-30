@@ -119,6 +119,7 @@ fi
 
 ## When NOT to Resolve
 
+- **Verdict = NEEDS-HUMAN (6.7)** — leave open on purpose so a human decides; never batch-resolve these
 - Reviewer explicitly asks to verify before resolving
 - Ongoing discussion (multiple back-and-forth)
 - Blocking concern that needs approval
