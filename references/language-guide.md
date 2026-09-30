@@ -263,7 +263,7 @@ LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
 | Created | สร้างเมื่อ |
 | Metric | ตัวชี้วัด |
 
-### /pr-review Reply Templates (6.1–6.5)
+### /pr-review Reply Templates (6.1–6.7)
 
 Reply bodies ที่โพสต์ตอบ reviewer บน GitHub — แปลตาม LANGUAGE (technical terms เช่น commit hash, issue number คงเดิม)
 
@@ -275,6 +275,8 @@ Reply bodies ที่โพสต์ตอบ reviewer บน GitHub — แป
 | 6.4 Praise | `Thank you! [brief acknowledgment]` | `ขอบคุณครับ! [รับทราบสั้น ๆ]` |
 | 6.5 Defer | `Thanks for the feedback! Created #N to track this work.` | `ขอบคุณสำหรับ feedback! สร้าง issue #N ไว้ track งานนี้แล้ว` |
 | Defer alt | `Created #N to track this work.` | `สร้าง issue #N ไว้ track งานนี้แล้ว` |
+| 6.2 Evidence line | `Evidence: [file:line / test output / KB path]` | `หลักฐาน: [file:line / ผล test / KB path]` |
+| 6.7 Needs human | `Needs human decision — not applied automatically. What was checked: [...] What is missing: [...]` | `รอคนตัดสิน — ยังไม่แก้อัตโนมัติ ตรวจแล้ว: [...] ยังขาด: [...]` |
 
 > Learning document commit message (`Step 9`) ยังคงเป็น English เสมอ (conventional commit) — เฉพาะ reply body และ section headings เท่านั้นที่แปล
 

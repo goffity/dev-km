@@ -160,7 +160,7 @@ spawn_claude_pr_review() {
     local log_file="${HOME}/.pr-review-claude-${pr_number}-$(date '+%Y%m%d-%H%M%S').log"
 
     # Build the prompt
-    local prompt="Review feedback received on PR #${pr_number} from @${reviewer} (${review_state}). Please run /pr-review ${pr_number} to analyze and respond to the feedback."
+    local prompt="Review feedback received on PR #${pr_number} from @${reviewer} (${review_state}). [HEADLESS] Please run /pr-review ${pr_number} to analyze and respond to the feedback. This is a headless run with no user to ask: follow the Step 5.5 Triage Gate headless rules — never apply a comment without evidence, mark anything uncertain or in a risk zone without a failing test as NEEDS-HUMAN and leave its thread open."
 
     # Spawn Claude CLI in the working directory
     # Using nohup to run in background, output to log file
