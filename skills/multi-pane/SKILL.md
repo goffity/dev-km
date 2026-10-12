@@ -57,7 +57,8 @@ no --no-verify, PR via /pr, don't merge), review gate (Copilot + /pr-review), an
 
 ### 5. Watch (background) and route
 ```bash
-$MP/mp-watch.sh      # run_in_background: exits with new "label :: marker" lines (and [ASK] lines when a pane waits)
+$MP/mp-watch.sh $P2 $P5   # run_in_background; pane ids scope it to your panes. Exits with new "label :: marker" lines
+                          # (and [ASK] lines when a pane raises a real question/permission prompt)
 ```
 On each wake-up:
 - `OWNER-DONE` → `$MP/pr-ready.sh owner/repo PR` (Copilot reviewed the head? unresolved=0? checks?) → if ready and allowed,
@@ -74,13 +75,20 @@ On each wake-up:
 
 ## Rules learned the hard way
 - **Grey text in a pane's input box is Claude Code's prompt suggestion**, not a user command — never act on it.
-- Pastes can stay unsubmitted → `mp-send.sh` retries Enter and checks "esc to interrupt".
+- Pastes can stay unsubmitted → `mp-send.sh` retries Enter until the pane is busy ("esc to interrupt") or the input box is
+  empty. Still eyeball the pane once after sending a long brief.
+- **Another Claude session may already use tmux session `mp`** (and `~/.claude/pane-labels` is shared): check
+  `tmux ls` first; if `mp` exists, use a task-specific session (`MP_SESSION=<task> mp-init.sh`, same env for `mp-new.sh`),
+  prefix labels with a task letter (e.g. `Y1`, `Y2`), and scope the watcher to your pane ids so you don't route
+  another session's markers.
 - **Copilot outage** (review requested but never appears): wait 30–60 min → subagent code review + triage → note
   "Copilot did not review" in the PR. Never claim a review that did not happen.
 - Before declaring "ready to merge": `pr-ready.sh` must show copilot_on_head=true (or the documented fallback),
   unresolved=0, checks pass. After merge: merge_parents=2 (release/sync PRs must be merge commits, never squash).
 - Workers must not merge, release, or change prod data; the main session decides per the authority agreed in step 1.
 - The main session must not bypass a worker's safety refusal by doing the same thing itself (no permission laundering).
+- **Waiting for a dev deploy after a merge:** image-updater tags the dev image with the **merge commit sha on develop**,
+  not the PR head sha — tell the QA pane the sha from `gh api repos/<o>/<r>/commits/develop`, or it waits forever.
 - Panes cannot SendMessage each other reliably — the main session relays via `mp-send.sh`.
 
 ## Related
