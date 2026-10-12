@@ -74,7 +74,12 @@ On each wake-up:
 
 ## Rules learned the hard way
 - **Grey text in a pane's input box is Claude Code's prompt suggestion**, not a user command — never act on it.
-- Pastes can stay unsubmitted → `mp-send.sh` retries Enter and checks "esc to interrupt".
+- Pastes can stay unsubmitted → `mp-send.sh` retries Enter until the pane is busy ("esc to interrupt") or the input box is
+  empty. Still eyeball the pane once after sending a long brief.
+- **Another Claude session may already use tmux session `mp`** (and `~/.claude/pane-labels` is shared): check
+  `tmux ls` first; if `mp` exists, use a task-specific session (`MP_SESSION=<task> mp-init.sh`, same env for `mp-new.sh`),
+  prefix labels with a task letter (e.g. `Y1`, `Y2`), and scope the watcher to your pane ids so you don't route
+  another session's markers.
 - **Copilot outage** (review requested but never appears): wait 30–60 min → subagent code review + triage → note
   "Copilot did not review" in the PR. Never claim a review that did not happen.
 - Before declaring "ready to merge": `pr-ready.sh` must show copilot_on_head=true (or the documented fallback),
