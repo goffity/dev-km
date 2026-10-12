@@ -11,6 +11,7 @@ SKILLS_DIR="$HOME/.claude/skills"
 # All skills to symlink (28 user-invocable + 6 specialists)
 SKILLS=(
     mem
+    multi-pane
     focus
     td
     recap
