@@ -57,7 +57,8 @@ no --no-verify, PR via /pr, don't merge), review gate (Copilot + /pr-review), an
 
 ### 5. Watch (background) and route
 ```bash
-$MP/mp-watch.sh      # run_in_background: exits with new "label :: marker" lines (and [ASK] lines when a pane waits)
+$MP/mp-watch.sh $P2 $P5   # run_in_background; pane ids scope it to your panes. Exits with new "label :: marker" lines
+                          # (and [ASK] lines when a pane raises a real question/permission prompt)
 ```
 On each wake-up:
 - `OWNER-DONE` → `$MP/pr-ready.sh owner/repo PR` (Copilot reviewed the head? unresolved=0? checks?) → if ready and allowed,
@@ -86,6 +87,8 @@ On each wake-up:
   unresolved=0, checks pass. After merge: merge_parents=2 (release/sync PRs must be merge commits, never squash).
 - Workers must not merge, release, or change prod data; the main session decides per the authority agreed in step 1.
 - The main session must not bypass a worker's safety refusal by doing the same thing itself (no permission laundering).
+- **Waiting for a dev deploy after a merge:** image-updater tags the dev image with the **merge commit sha on develop**,
+  not the PR head sha — tell the QA pane the sha from `gh api repos/<o>/<r>/commits/develop`, or it waits forever.
 - Panes cannot SendMessage each other reliably — the main session relays via `mp-send.sh`.
 
 ## Related
