@@ -168,8 +168,7 @@ Type: [type]
 
 สร้าง Bug ticket พร้อม Bug template และเขียน kb/00-inbox note ให้อัตโนมัติ — **Bug ทุกใบต้องสร้างผ่านคำสั่งนี้** ไม่ใช้ `create ... Bug`
 
-> **ห้ามสร้าง ticket เอง** — Claude ร่าง summary / description / labels / คำสั่งให้ user ตรวจ แล้วให้ user เป็นคนสั่งรัน
-> ห้ามยิง Jira API ตรงๆ เพื่อสร้าง ticket
+> สร้างผ่าน `jira-client.sh create-bug` เท่านั้น ห้ามยิง Jira API ตรงๆ เพื่อสร้าง Bug (จะไม่ได้ template และ kb note)
 
 ```bash
 ./scripts/jira-client.sh create-bug <project> <summary> [description|@file] \
@@ -218,7 +217,7 @@ Type: [type]
 **Example:**
 
 ```bash
-# ร่าง description ตาม template ลงไฟล์ก่อน แล้วให้ user ตรวจ/สั่งรัน
+# เขียน description ตาม template ลงไฟล์ก่อน แล้วส่งเป็น @file
 ./scripts/jira-client.sh create-bug RUAYS "[kol-wallet] แก้ยอดฝากเข้าซ้ำเมื่อ gateway ส่ง callback ซ้ำ" @/tmp/bug-desc.md \
   --labels kol-wallet,bug,deposit-callback \
   --root-cause "ยังไม่ทราบ"
