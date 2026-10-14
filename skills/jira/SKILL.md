@@ -24,7 +24,8 @@ user-invocable: true
 | `/jira list` | แสดง issues ใน project |
 | `/jira my` | แสดง issues ที่ assign ให้ฉัน |
 | `/jira get <key>` | ดู issue details |
-| `/jira create` | สร้าง issue ใหม่ |
+| `/jira create` | สร้าง issue ใหม่ (Bug → ใช้ `create-bug`) |
+| `/jira create-bug` | สร้าง Bug พร้อม template + kb/00-inbox note |
 | `/jira create-story` | สร้าง Story พร้อม template |
 | `/jira create-epic` | สร้าง Epic พร้อม template |
 | `/jira create-subtask-templated` | สร้าง Subtask พร้อม template และ dependency links |
@@ -139,6 +140,9 @@ PROJ-125   Done         Update docs
 5. Priority (Highest, High, Medium, Low, Lowest)
 ```
 
+> **Issue Type = Bug → ห้ามใช้ `create ... Bug`** ให้ไปที่ [Command: create-bug](#command-create-bug) แทน
+> (template ของ Bug + Acceptance Criteria + kb note ถูกบังคับที่นั่น)
+
 **Step 2: สร้าง issue**
 
 ```bash
@@ -156,6 +160,72 @@ Summary: [summary]
 Type: [type]
 
 ใช้ /focus แล้วเลือก "Jira (existing)" เพื่อเริ่มทำงาน
+```
+
+**Step 4: kb note** — ticket ทุกใบที่สร้าง (ไม่ใช่แค่ Bug) ต้องมี note ที่ `kb/00-inbox/YYYY-MM-DD <KEY> <system> - <title>.md` ด้วย (`create-bug` เขียนให้อัตโนมัติ, type อื่นเขียนเองตาม format เดียวกัน)
+
+### Command: create-bug
+
+สร้าง Bug ticket พร้อม Bug template และเขียน kb/00-inbox note ให้อัตโนมัติ — **Bug ทุกใบต้องสร้างผ่านคำสั่งนี้** ไม่ใช้ `create ... Bug`
+
+> สร้างผ่าน `jira-client.sh create-bug` เท่านั้น ห้ามยิง Jira API ตรงๆ เพื่อสร้าง Bug (จะไม่ได้ template และ kb note)
+
+```bash
+./scripts/jira-client.sh create-bug <project> <summary> [description|@file] \
+  [--labels L1,L2] [--assign me|accountId] [--points N] \
+  [--root-cause text|@file] [--root-cause-in-ticket] \
+  [--system name] [--kb-dir path] [--no-kb]
+```
+
+**Options:**
+- `description|@file` - ไม่ใส่ = เติม Bug template เปล่าให้ (`@file` = อ่านจากไฟล์ markdown)
+- `--labels L1,L2` - labels (comma-separated)
+- `--assign me|accountId` - assign
+- `--points N` - story points
+- `--root-cause text|@file` - ต้นเหตุ → เขียนลง kb note เท่านั้น
+- `--root-cause-in-ticket` - ใส่ต้นเหตุเป็น section `## ต้นเหตุ` ท้าย ticket ด้วย (ต้องมี `--root-cause`) — **ใช้เฉพาะเมื่อ user ขอชัดเจน**
+- `--system name` - ชื่อ system ในชื่อไฟล์ kb note (default = repo จาก prefix `[repo]` ของ summary ตัด `kol-` ออก, ไม่มี prefix = `general`)
+- `--kb-dir path` - ตำแหน่ง kb (default = `$KB_DIR` หรือ `<script-dir>/../kb`)
+- `--no-kb` - ไม่เขียน kb note (ไม่ใช้ เว้นแต่ user สั่ง)
+
+**Template Sections (description ต้องมีครบตามลำดับนี้):**
+- ปัญหา - ผู้ใช้เห็นอะไร หน้าไหน agent/แบรนด์ไหน เมื่อไร + id/ภาพหน้าจอ
+- ขั้นตอนทำซ้ำ - ขั้นตอนเป็นข้อๆ
+- ผลที่ได้ - สิ่งที่เกิดขึ้นจริง (actual)
+- ผลที่ควรเป็น - สิ่งที่ควรเกิดขึ้น (expected)
+- ผลกระทบ - กระทบเงิน/รายงาน/ผู้ใช้กี่ราย กี่แบรนด์ ช่วงเวลาไหน
+- ที่ต้องการ - ขอบเขตที่ต้องแก้
+- Acceptance Criteria - checklist ที่ **QA ตรวจได้** รูปแบบ "เมื่อ … แล้ว …" (ไม่ใช่ todo list ของ dev เช่น "แก้ฟังก์ชัน X")
+- Out of scope - สิ่งที่ไม่ทำในใบนี้ + link ใบที่เกี่ยวข้อง
+- ทดสอบ - environment, ข้อมูลทดสอบ, rollback ถ้าแตะเงินหรือข้อมูล
+
+> ถ้าส่ง description เอง ต้องใช้หัวข้อชุดเดียวกันนี้ และเติมเนื้อหาจริงทุกหัวข้อ (โดยเฉพาะ expected vs actual และ AC) — อย่าส่ง template ที่ยังมี placeholder `[...]` ค้างอยู่
+
+**kb note (อัตโนมัติ):**
+- ทุก ticket ที่สร้าง → มี note ที่ `kb/00-inbox/YYYY-MM-DD <KEY> <system> - <title>.md` (title = summary ที่ตัด `[repo]` prefix ออก)
+- frontmatter: `tags: [inbox, bug, <labels>]`, `type: idea`, `jira: <KEY>`, `status: backlog`
+- section `## ต้นเหตุ` = ค่าจาก `--root-cause` หรือ "ยังไม่ทราบ — เติมเมื่อพบ" ถ้าไม่ระบุ, ตามด้วย `## รายละเอียดตอนเปิด ticket` (สำเนา description)
+- **ต้นเหตุอยู่ที่ kb note ไม่ใช่ ticket** (ค่าเริ่มต้น) — ใส่ใน ticket เฉพาะ `--root-cause-in-ticket` เมื่อ user ขอ
+- ticket สร้างแล้วแต่ note fail → ได้ warning (ticket ไม่ถูกลบ) ต้องเขียน note เองตาม format เดิม
+- note อยู่ใน kol-brain repo (`kb/` symlink) → commit/push ที่ kol-brain
+
+**Conventions:**
+- Summary: งาน single-repo ขึ้นต้น `[repo-name]` + ชื่อเรื่องภาษาไทยขึ้นต้นด้วยคำกริยา เช่น `[kol-wallet] แก้ยอดฝากซ้ำเมื่อ callback มาซ้ำ`
+- Labels: lowercase ชื่อ service + หมวด (เช่น `kol-wallet,bug`) + label กลุ่มร่วมกันสำหรับ ticket ที่เกี่ยวข้องกัน · ห้ามใช้ label กว้างๆ อย่าง `Backend` / `Frontend`
+- Bug ข้ามหลาย repo: สร้าง **parent Bug 1 ใบ** (อาการที่ผู้ใช้เห็น ปิดได้เมื่อ child ทุกใบขึ้นแล้ว + QA ผ่าน) + ticket ต่อ repo แล้ว link ด้วย `link blocks <child> <parent>`
+
+**Example:**
+
+```bash
+# เขียน description ตาม template ลงไฟล์ก่อน แล้วส่งเป็น @file
+./scripts/jira-client.sh create-bug RUAYS "[kol-wallet] แก้ยอดฝากเข้าซ้ำเมื่อ gateway ส่ง callback ซ้ำ" @/tmp/bug-desc.md \
+  --labels kol-wallet,bug,deposit-callback \
+  --root-cause "ยังไม่ทราบ"
+
+# Bug ข้าม repo: parent + child แล้ว link
+./scripts/jira-client.sh create-bug RUAYS "แก้ยอดฝากเข้าซ้ำเมื่อ gateway ส่ง callback ซ้ำ" @/tmp/parent.md --labels bug,deposit-callback
+./scripts/jira-client.sh create-bug RUAYS "[kol-wallet] กัน callback ฝากซ้ำด้วย idempotency key" @/tmp/wallet.md --labels kol-wallet,bug,deposit-callback
+./scripts/jira-client.sh link blocks RUAYS-<child> RUAYS-<parent>
 ```
 
 ### Command: create-story
@@ -402,6 +472,9 @@ JIRA_PROJECT="PROJ"  # default project
 
 # Create issue
 /jira create
+
+# Create Bug (template + kb/00-inbox note)
+./scripts/jira-client.sh create-bug PROJ "[kol-wallet] แก้ยอดฝากซ้ำ" @/tmp/bug-desc.md --labels kol-wallet,bug
 
 # Create Story/Epic with templates
 ./scripts/jira-client.sh create-story PROJ "Feature summary" --labels Backend,Player --due 2026-02-14
