@@ -39,17 +39,28 @@ commits (shared code / per-repo theme / wiring). Then split the remaining repos 
 conflicts). Add a QA pane that tests behind the owners.
 
 ```bash
-P2=$($MP/mp-new.sh "2 FRONTEND · repoA,repoB" ~/Development/kol)   # prints pane id like %31
-P5=$($MP/mp-new.sh "5 QA · dev" ~/Development/kol/kol-architecture)
+# code-changing worker: its own worktree + ticket branch (never the shared checkout)
+P1=$($MP/mp-new.sh "1 BE · kol-report RUAYS-2402" ~/Development/kol/kol-report --ticket RUAYS-2402 --slug "root win loss report")
+P2=$($MP/mp-new.sh "2 FRONTEND · repoA,repoB" ~/Development/kol)   # multi-repo owner: brief says which worktree per repo
+P5=$($MP/mp-new.sh "5 QA · dev" ~/Development/kol/kol-architecture)  # read-only/QA may use the shared checkout
 ```
+
+**Branch setup is the main session's job, not the worker's.** `--ticket KEY-123` runs `mp-worktree.sh`: it reuses the
+ticket's worktree/branch if one exists, otherwise fetches and creates `<repo>-wt-<number>` on `feat/KEY-123-<slug>` from
+`origin/develop` (or `--base <ref>`), and opens the worker there. Without `--ticket`, `mp-new.sh` warns when the pane opens in
+a shared checkout — a worker there inherits whatever branch that checkout is on (e.g. an old merged feature branch). For a
+multi-repo owner pane, prepare one worktree per repo yourself (`$MP/mp-worktree.sh <repo> KEY-123`) and list the paths in the
+brief. Untracked files a repo needs to build (e.g. `.env`, `.tool-versions`) are not copied — say so in the brief.
 
 ### 4. Send work as a file (never type long text with send-keys)
 Write the brief to a scratchpad file, then:
 ```bash
 $MP/mp-send.sh "$P2" brief-p2.md     # pastes, presses Enter until the pane shows "esc to interrupt"
 ```
-Every brief must contain: scope (repos/branches, worktree rule — never touch shared checkouts), constraints (tests/build,
-no --no-verify, PR via /pr, don't merge), review gate (Copilot + /pr-review), and **the marker to print when done**:
+Every brief must contain: scope (repos, **the exact worktree path + branch per repo** — never touch shared checkouts),
+**first action: `git branch --show-current` in each worktree; if it is not the stated branch, print `NEED-INPUT wrong branch
+<repo>: <actual>` and stop**, constraints (tests/build, no --no-verify, PR via /pr, don't merge), review gate
+(Copilot + /pr-review), and **the marker to print when done**:
 - owner: `OWNER-DONE <repo>#<PR> <short result>` (or `OWNER-FIXING <repo>#<PR>`)
 - QA: `QA-RESULT <repo>#<PR> PASS|FAIL <list>`
 - either: `NEED-INPUT <question>` if blocked on a user decision
@@ -80,6 +91,10 @@ On each wake-up:
 - Before declaring "ready to merge": `pr-ready.sh` must show copilot_on_head=true (or the documented fallback),
   unresolved=0, checks pass. After merge: merge_parents=2 (release/sync PRs must be merge commits, never squash).
 - Workers must not merge, release, or change prod data; the main session decides per the authority agreed in step 1.
+- **Never start a code-changing worker in a shared checkout** — it picks up that checkout's current branch. A worker on
+  `feat/RUAYS-2036-…` (already merged) was given RUAYS-2402 work this way. Use `mp-new.sh --ticket`; fix a worker on the
+  wrong branch from the main session (new worktree via `mp-worktree.sh`, then brief it to move), not by letting it switch
+  branches in the shared checkout.
 - The main session must not bypass a worker's safety refusal by doing the same thing itself (no permission laundering).
 - Panes cannot SendMessage each other reliably — the main session relays via `mp-send.sh`.
 

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`/multi-pane` ticket worktrees** — `mp-new.sh --ticket KEY-123 [--base <ref>] [--slug <words>]` starts a worker in
+  that ticket's own worktree + branch via the new `mp-worktree.sh` (reuses an existing one, else creates
+  `<repo>-wt-<number>` on `feat/KEY-123-<slug>` from `origin/develop`). Without `--ticket`, `mp-new.sh` warns when a
+  worker opens in a shared checkout, which hands it whatever branch that checkout is on. SKILL.md: branch setup is the
+  main session's job; every brief names the worktree + branch and the worker's first action is to verify it.
+
 ### Changed
 - **`/pr-review` Triage Gate (Step 5.5)** — every review comment (human or AI) now gets a verdict
   (`ACCEPT` / `REJECT` / `DEFER` / `NEEDS-HUMAN`) backed by evidence (test/build output, `file:line`, KB/ADR path,
