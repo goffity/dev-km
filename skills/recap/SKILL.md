@@ -11,24 +11,70 @@ user-invocable: true
 ## Usage
 
 ```
-/recap
+/recap                 # resolve ticket from the current branch
+/recap RUAYS-1234      # or pass the ticket explicitly (Jira key or #123)
 ```
+
+> `docs/current.md` is no longer read or written — the ticket is resolved per session
+> (argument → branch name → ask). See `references/bash-helpers.md` → Focus Context.
 
 ## Instructions
 
 ### Language Setting
 
-> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. Display current LANGUAGE as part of context. See `references/bash-helpers.md` for detection snippet.
+> **Language:** follow the project's CLAUDE.md (fallback `DEVKM_LANG`, then `en`) — see `references/bash-helpers.md` → Language Detection. If Thai, translate output per `references/language-guide.md`. Display current LANGUAGE as part of context.
 
-### Step 1: Load Current Focus
+### Step 1: Resolve Ticket + Tracker Status
 
 ```bash
 export TZ='Asia/Bangkok'
-echo "=== Current Focus ==="
-cat docs/current.md
+if ISSUE=$(~/.claude/skills/dev-km/scripts/current-ticket.sh "$ARGUMENTS"); then
+  echo "ticket: $ISSUE"
+  case "$ISSUE" in
+    \#*) gh issue view "${ISSUE#\#}" --json title,state,url ;;
+    *)   ~/.claude/skills/dev-km/scripts/jira-client.sh get "$ISSUE" ;;   # summary/status
+  esac
+else
+  echo "STOP: ask the user which ticket (exit 1 = none found, 2 = argument ambiguous)"
+  echo "=== Branches with tickets ==="
+  git branch --list '*RUAYS-*' --sort=-committerdate | head -10
+  echo "=== kb working notes ==="
+  ls -t kb/00-inbox/*RUAYS-*.md 2>/dev/null | head -10
+fi
 ```
 
-### Step 2: Show Context
+**exit ≠ 0 → หยุด** แสดง candidate ด้านบนแล้วใช้ AskUserQuestion ให้ user เลือก ticket (หรือแนะนำ `/focus` ถ้าเป็นงานใหม่) — ห้ามเดา, ห้ามทำ Step 2–3 ด้วย ticket ว่าง
+
+> **Bash variables ไม่ persist ข้าม tool call** — Step 2–3 ให้เขียน ticket ที่ยืนยันแล้วแบบ literal (เช่น `RUAYS-1741` หรือ `123`) ลงใน snippet — ห้าม resolve ซ้ำ
+
+### Step 2: Branch Check (ticket confirmed only)
+
+```bash
+KEY="<confirmed ticket from Step 1, e.g. RUAYS-1741 or 123>"
+[ -n "$KEY" ] || { echo "no ticket — skip"; exit 1; }
+CURRENT_BRANCH=$(git branch --show-current)
+echo "Branch: $CURRENT_BRANCH"
+if echo "$CURRENT_BRANCH" | grep -qE "${KEY}([^0-9]|$)"; then
+  echo "branch matches $KEY"
+else
+  echo "branch does not match $KEY — candidate branches:"
+  git branch --list | grep -E "${KEY}([^0-9]|$)"
+fi
+```
+
+- ถ้า current branch มี ticket อยู่แล้ว → OK
+- ถ้าไม่มี แต่มี branch อื่นที่มี ticket → ถาม user ว่าจะ switch ไหม (`git stash push -m "<name>"` ก่อน `git checkout` ถ้ามี uncommitted changes)
+- ถ้าไม่มี branch เลย → แนะนำ `/focus` เพื่อสร้าง branch
+
+### Step 3: Context
+
+kb working note — เฉพาะ Jira key (เลข GitHub ไม่ใช้กับ kb glob):
+
+```bash
+KEY="<confirmed Jira key from Step 1, e.g. RUAYS-1741>"
+case "$KEY" in RUAYS-[0-9]*) ;; *) echo "no Jira ticket — skip kb note"; exit 0;; esac
+for f in kb/00-inbox/*"$KEY"[!0-9]*.md; do [ -f "$f" ] && { echo "=== $f ==="; cat "$f"; }; done
+```
 
 ```bash
 export TZ='Asia/Bangkok'
@@ -38,120 +84,15 @@ tail -5 docs/logs/activity.log
 echo ""
 echo "=== Git Status ==="
 echo "Date: $(date '+%Y-%m-%d %H:%M')"
-echo "Branch: $(git branch --show-current)"
-git status --short
+git status -sb
 echo ""
 echo "=== Recent Commits ==="
 git log --oneline -5
 ```
 
-### Step 3: Check for Pending Work
+### Step 4: Check WIP.md (Optional)
 
-**ถ้า STATE = `working` หรือ `pending`:**
-
-ใช้ AskUserQuestion เพื่อถามผู้ใช้:
-
-```
-งานค้างอยู่: [TASK from current.md]
-ตั้งแต่: [SINCE from current.md]
-
-ต้องการทำอะไร?
-```
-
-Options:
-1. **ทำต่องานเดิม** - Continue working on current task
-2. **เริ่มงานใหม่** - Start new task (old task moves to WIP.md)
-
-### Step 4: Handle User Choice
-
-**ถ้าเลือก "ทำต่องานเดิม":**
-
-```bash
-export TZ='Asia/Bangkok'
-
-EXPECTED_BRANCH=$(grep "^BRANCH:" docs/current.md | cut -d: -f2- | xargs)
-CURRENT_BRANCH=$(git branch --show-current)
-
-if [ -n "$EXPECTED_BRANCH" ] && [ "$EXPECTED_BRANCH" != "-" ] && [ "$CURRENT_BRANCH" != "$EXPECTED_BRANCH" ]; then
-  echo "Switching to branch: $EXPECTED_BRANCH"
-  git checkout "$EXPECTED_BRANCH"
-fi
-
-sed -i '' 's/STATE: pending/STATE: working/' docs/current.md
-echo "$(date '+%Y-%m-%d %H:%M') | working | [TASK] (resumed)" >> docs/logs/activity.log
-```
-
-แสดง:
-```
-พร้อมทำต่อ: [TASK]
-Branch: [BRANCH]
-```
-
-**ถ้าเลือก "เริ่มงานใหม่":**
-
-1. ย้ายงานเก่าไป WIP.md:
-
-```bash
-export TZ='Asia/Bangkok'
-
-if [ ! -f docs/WIP.md ]; then
-  echo "# Work In Progress" > docs/WIP.md
-  echo "" >> docs/WIP.md
-  echo "งานที่ยังไม่เสร็จ พักไว้ก่อน" >> docs/WIP.md
-  echo "" >> docs/WIP.md
-fi
-
-TASK=$(grep "^TASK:" docs/current.md | cut -d: -f2- | xargs)
-SINCE=$(grep "^SINCE:" docs/current.md | cut -d: -f2- | xargs)
-BRANCH=$(grep "^BRANCH:" docs/current.md | cut -d: -f2- | xargs)
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2- | xargs)
-
-echo "## $TASK" >> docs/WIP.md
-echo "" >> docs/WIP.md
-echo "- **Started:** $SINCE" >> docs/WIP.md
-echo "- **Paused:** $(date '+%Y-%m-%d %H:%M')" >> docs/WIP.md
-echo "- **Branch:** $BRANCH" >> docs/WIP.md
-echo "- **Issue:** $ISSUE" >> docs/WIP.md
-echo "- **Status:** Incomplete" >> docs/WIP.md
-echo "" >> docs/WIP.md
-```
-
-2. Log activity:
-
-```bash
-export TZ='Asia/Bangkok'
-echo "$(date '+%Y-%m-%d %H:%M') | pending | [TASK] (moved to WIP.md)" >> docs/logs/activity.log
-```
-
-3. Reset current.md:
-
-```bash
-export TZ='Asia/Bangkok'
-cat > docs/current.md << 'EOF'
-STATE: ready
-TASK: -
-SINCE: -
-ISSUE: -
-BRANCH: -
-EOF
-```
-
-4. แสดง:
-```
-งานเก่าถูกย้ายไป docs/WIP.md แล้ว
-ใช้ /focus เพื่อตั้งงานใหม่
-```
-
-**ถ้า STATE = `ready` หรือ `completed`:**
-
-```
-ไม่มีงานค้าง
-ใช้ /focus เพื่อตั้งงานใหม่
-```
-
-### Step 5: Check WIP.md (Optional)
-
-ถ้ามี WIP.md และมีงานค้างอยู่ แสดง:
+ถ้ามี WIP.md (งานที่พักไว้จากเวอร์ชันก่อน) แสดง:
 
 ```bash
 if [ -f docs/WIP.md ]; then
@@ -166,32 +107,24 @@ fi
 ## Session Recap
 
 ### Current Focus
-STATE: [state]
-TASK: [task]
-SINCE: [since]
-ISSUE: [issue]
-BRANCH: [branch]
+ISSUE: [ticket]
+TITLE: [summary from tracker]
+STATUS: [status from tracker]
+BRANCH: [branch] ([matches ticket | mismatch → expected ...])
+LANGUAGE: [th|en]
+
+### Working Note
+[kb/00-inbox note summary, if any]
 
 ### Recent Activity
 [last 5 entries]
 
 ### Git Status
-Branch: [branch]
-Changes: [count]
+[git status -sb]
 
 ### Action Required
-[ถาม continue/new หรือ แนะนำ /focus]
+[continue / switch branch / ถามเลือก ticket / แนะนำ /focus]
 ```
-
-## State Reference
-
-| STATE | Action |
-|-------|--------|
-| `ready` | ไม่มี focus → แนะนำ `/focus` |
-| `working` | มีงานค้าง → ถาม continue/new |
-| `pending` | งานถูกพักไว้ → ถาม continue/new |
-| `blocked` | ติดปัญหา → ถามสถานะ |
-| `completed` | งานเสร็จแล้ว → แนะนำ `/focus` |
 
 ## Related Commands
 

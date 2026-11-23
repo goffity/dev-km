@@ -25,7 +25,7 @@ user-invocable: true
 
 ### Language Setting
 
-> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
+> **Language:** follow the project's CLAUDE.md (fallback `DEVKM_LANG`, then `en`) — see `references/bash-helpers.md` → Language Detection. If Thai, translate output per `references/language-guide.md`.
 
 1. **Scan learnings** for related content (3+ files on same topic)
    ```bash

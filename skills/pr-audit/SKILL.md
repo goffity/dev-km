@@ -35,7 +35,7 @@ user-invocable: true
 
 ### Language Setting
 
-> Default `--lang=th`. ถ้าไม่ระบุ ตรวจ `LANGUAGE` ใน `docs/current.md` ด้วย แล้ว fallback เป็น `th`.
+> Default `--lang=th`. ถ้าไม่ระบุ ตามภาษาใน CLAUDE.md ของ project / `DEVKM_LANG` (ดู `references/bash-helpers.md` → Language Detection) แล้ว fallback เป็น `th`.
 > แปล output ที่ผู้ใช้เห็น/comment ที่โพสต์ตาม `references/language-guide.md`.
 > **คงเป็น English เสมอ:** code, commit hash, file path, line number, technical terms
 

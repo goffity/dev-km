@@ -4,11 +4,13 @@
 
 ## Reading Language Setting
 
-```bash
-LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-```
+ภาษาเป็น project setting (ไม่อ่านจาก `docs/current.md` แล้ว) — ดู `references/bash-helpers.md` → Language Detection:
 
-- `en` หรือไม่มีค่า → ใช้ English (default)
+1. CLAUDE.md ของ project / user instructions (เช่น "Respond in Thai") → ทำตามนั้น
+2. ไม่งั้น env `DEVKM_LANG` (`th` | `en`)
+3. ไม่งั้น `en` (default)
+
+- `en` → ใช้ English
 - `th` → ใช้ภาษาไทยตามตารางด้านล่าง
 
 ## Rules

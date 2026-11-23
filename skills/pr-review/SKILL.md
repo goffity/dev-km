@@ -20,7 +20,7 @@ user-invocable: true
 
 ### Language Setting
 
-> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
+> **Language:** follow the project's CLAUDE.md (fallback `DEVKM_LANG`, then `en`) — see `references/bash-helpers.md` → Language Detection. If Thai, translate output per `references/language-guide.md`.
 
 ### Step 1: Find Open PRs with Reviews
 
@@ -188,7 +188,7 @@ test/build output, `file:line`, KB/ADR path, หรือ DB constraint
 - ห้ามสร้าง comment ใหม่แยกต่างหาก
 - ต้อง reply ไปที่ comment นั้นๆ โดยตรงเท่านั้น
 
-> **Language:** reply bodies ด้านล่าง (6.1–6.7) เป็น template ภาษาอังกฤษ — ถ้า `LANGUAGE: th` ใน `docs/current.md` ให้แปลตามตาราง "**/pr-review Reply Templates (6.1–6.7)**" ใน [language-guide.md](../../references/language-guide.md) ส่วน commit message คงเป็น English เสมอ
+> **Language:** reply bodies ด้านล่าง (6.1–6.7) เป็น template ภาษาอังกฤษ — ถ้าภาษาของ project เป็นไทย (ตาม CLAUDE.md / `DEVKM_LANG` — ดู `references/bash-helpers.md` → Language Detection) ให้แปลตามตาราง "**/pr-review Reply Templates (6.1–6.7)**" ใน [language-guide.md](../../references/language-guide.md) ส่วน commit message คงเป็น English เสมอ
 
 **Thread Resolution:** ใช้ helper functions จาก [thread-resolution.md](thread-resolution.md) — `get_thread_id_for_comment(owner, repo, pr_number, comment_id)` และ `resolve_thread(thread_id)`
 

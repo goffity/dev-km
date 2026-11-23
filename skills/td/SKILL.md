@@ -16,6 +16,7 @@ user-invocable: true
 /td done      # งานเสร็จแล้ว
 /td pending   # ยังไม่เสร็จ รอทำต่อ
 /td blocked   # ติดปัญหา
+/td done RUAYS-1234   # ระบุ ticket เองได้ (ไม่งั้น resolve จากชื่อ branch)
 ```
 
 ## Output
@@ -25,7 +26,7 @@ user-invocable: true
 ## Flow
 
 ```
-/td → Determine Status → Auto-capture → Gather Info → Comment Issue → Create Retrospective → Promote to KB (if done+ticket) → Update Focus → Commit Docs → Confirm
+/td → Determine Status → Auto-capture → Gather Info → Comment Issue → Create Retrospective → Promote to KB (if done+ticket) → Activity Log → Commit Docs → Confirm
 ```
 
 **Note:** สำหรับ tests, build, code review และสร้าง PR ให้ใช้ `/pr` ก่อนรัน `/td`
@@ -34,15 +35,27 @@ user-invocable: true
 
 ### Language Setting
 
-> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
+> **Language:** follow the project's CLAUDE.md (fallback `DEVKM_LANG`, then `en`) — see `references/bash-helpers.md` → Language Detection. If Thai, translate output per `references/language-guide.md`.
 
 ### Step 0: Read Current Focus
 
 ```bash
 export TZ='Asia/Bangkok'
 echo "=== Current Focus ==="
-cat docs/current.md
+if ISSUE=$(~/.claude/skills/dev-km/scripts/current-ticket.sh "$ARGUMENTS"); then
+  echo "ticket: $ISSUE | branch: $(git branch --show-current)"
+  case "$ISSUE" in
+    \#*) gh issue view "${ISSUE#\#}" --json title,state ;;
+    *)   ~/.claude/skills/dev-km/scripts/jira-client.sh get "$ISSUE" ;;   # summary/status
+  esac
+else
+  echo "STOP: ask the user which ticket (exit 1 = none found, 2 = argument ambiguous)"
+fi
 ```
+
+- **exit ≠ 0 → หยุดแล้วถาม user** ว่า ticket อะไร — ห้ามเดา, ห้ามทำต่อด้วย ticket ว่าง
+- TASK = title/summary จาก tracker (output ด้านบน)
+- **Bash variables ไม่ persist ข้าม tool call** — หลัง Step 0 ให้เขียน ticket ที่ยืนยันแล้วแบบ literal (เช่น `RUAYS-1741` หรือ `123` สำหรับ GitHub) ลงในทุก snippet ถัดไป — ห้าม resolve ซ้ำ และห้ามพึ่ง `$ISSUE` จาก step ก่อน
 
 เก็บค่า TASK และ ISSUE ไว้ใช้ใน steps ถัดไป
 
@@ -96,10 +109,10 @@ git status --short
 
 ### Step 4: Add Comment to Issue
 
-**อ่าน issue number จาก `docs/current.md`:**
+**ใช้ ticket ที่ยืนยันแล้วจาก Step 0** (เขียนแบบ literal — ห้าม resolve ซ้ำ):
 
 ```bash
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0, e.g. 123>"
 echo "Issue: #$ISSUE"
 ```
 
@@ -154,16 +167,17 @@ EOF
 
 ### Step 5.5: Promote to KB (canonical)
 
-> **Gate:** ทำเฉพาะเมื่อ `STATE = completed` เท่านั้น. ถ้า `pending`/`blocked` → **ข้าม** (working note ค้างใน `kb/00-inbox/` ต่อ ไว้ promote ตอนเสร็จจริง)
-> เฉพาะงานที่**มี RUAYS ticket**. ถ้า ticketless (เช่น ad-hoc/exploration, `ISSUE` ว่าง/`-`) → **ข้าม** (retro ใน `05-ai-reviewed/` พอแล้ว — promote เข้า 01-projects ทำเฉพาะงานที่ผูก ticket)
+> **Gate:** ทำเฉพาะเมื่อ user รัน `/td done` (หรือ ticket เป็น Done ใน Jira) เท่านั้น. ถ้า `pending`/`blocked` → **ข้าม** (working note ค้างใน `kb/00-inbox/` ต่อ ไว้ promote ตอนเสร็จจริง)
+> เฉพาะงานที่**มี RUAYS ticket**. ถ้า ticketless (เช่น ad-hoc/exploration, ไม่มี Jira key, หรือเป็น GitHub `#N`) → **ข้าม** (retro ใน `05-ai-reviewed/` พอแล้ว — promote เข้า 01-projects ทำเฉพาะงานที่ผูก ticket)
 > นี่เป็น judgment step — **Claude ทำเอง** (อ่าน → จัดหมวด → เขียน). อ้างอิง [[PLAYBOOK]] Mode B + C
 
 **5.5.1 — รวบรวม source:**
 
 ```bash
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+KEY="<confirmed Jira key from Step 0, e.g. RUAYS-1741>"
+case "$KEY" in RUAYS-[0-9]*) ;; *) echo "no Jira ticket — skip kb promote"; exit 1;; esac
 echo "=== inbox working note (breadcrumb จาก SessionEnd hook) ==="
-ls kb/00-inbox/*"$ISSUE"*.md 2>/dev/null
+ls kb/00-inbox/*"$KEY"[!0-9]*.md 2>/dev/null
 echo "=== retrospective ที่เพิ่งสร้าง ==="
 ls -t kb/05-ai-reviewed/retrospective/*/retrospective_*.md 2>/dev/null | head -1
 ```
@@ -191,25 +205,16 @@ ls -t kb/05-ai-reviewed/retrospective/*/retrospective_*.md 2>/dev/null | head -1
 **5.5.5 — ลบ inbox note** (Mode B ข้อ 4 — กัน stale duplicate):
 
 ```bash
-ls "kb/01-projects/<service>/$ISSUE/" && rm "kb/00-inbox/"*"$ISSUE"*.md
+KEY="<confirmed Jira key from Step 0, e.g. RUAYS-1741>"
+case "$KEY" in RUAYS-[0-9]*) ;; *) echo "no Jira ticket — skip kb promote"; exit 1;; esac
+ls "kb/01-projects/<service>/$KEY/" && rm kb/00-inbox/*"$KEY"[!0-9]*.md
 ```
+
+> bounded glob `*"$KEY"[!0-9]*.md` — `RUAYS-12` ต้องไม่ match `RUAYS-123`; ห้ามใช้เลข GitHub ใน kb glob
 
 > ⚠️ `kb/` = symlink → repo `kol-brain` แยก: **commit/push ที่ `kol-brain` โดยตรง** (ไม่ใช่ kol-architecture)
 
-### Step 6: Update Focus & Activity Log
-
-**Update `docs/current.md`:**
-
-```bash
-export TZ='Asia/Bangkok'
-
-cat > docs/current.md << EOF
-STATE: completed
-TASK: [task from original focus]
-SINCE: $(date '+%Y-%m-%d %H:%M')
-ISSUE: #[issue-number]
-EOF
-```
+### Step 6: Activity Log
 
 **Append to `docs/logs/activity.log`:**
 

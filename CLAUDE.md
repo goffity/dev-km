@@ -34,7 +34,7 @@ Output directories under `docs/`:
 /recap → /focus (creates issue + branch) → work (/mem, /commit) → /pr (test + build + review + PR) → /td (retrospective)
 ```
 
-State tracked in `docs/current.md` with states: ready → working → pending → blocked → completed.
+Focus is resolved per session — `scripts/current-ticket.sh` (argument → branch name → ask the user); title/status come from the tracker (Jira / GitHub). `docs/current.md` is no longer read or written (one shared file that parallel sessions overwrote).
 
 ### Installation Mechanism
 
@@ -57,7 +57,7 @@ Defined in `hooks.json` and `.claude/settings.json`:
 | `references/*.md` | Templates, bash helpers, language guide |
 | `scripts/init.sh` | Project initialization (creates dirs, copies commands, installs symlinks) |
 | `scripts/install-symlinks.sh` | Creates 27 skill symlinks in `~/.claude/skills/` |
-| `docs/current.md` | Current focus state (ISSUE/TASK tracking) |
+| `scripts/current-ticket.sh` | Resolve current ticket (argument → branch name; exit 1 = none, 2 = ambiguous → ask the user; Jira prefix via `DEVKM_TICKET_PREFIX`, default `RUAYS`) |
 
 ## Development Notes
 
@@ -71,7 +71,7 @@ Defined in `hooks.json` and `.claude/settings.json`:
 ## Conventions
 
 - Skill instructions (SKILL.md files) use Thai as the primary language.
-- Generated output (issue comments, PR descriptions, local docs) follows the `LANGUAGE` setting in `docs/current.md`. Default is `en`. When `th`, use `references/language-guide.md` for translations.
+- Generated output (issue comments, PR descriptions, local docs) follows the project's language setting (project CLAUDE.md, else `DEVKM_LANG`, else `en` — see `references/bash-helpers.md`). When Thai, use `references/language-guide.md` for translations.
 - Commit messages and branch names always use English regardless of language setting.
 - Timestamps use `Asia/Bangkok` timezone (see `references/bash-helpers.md` for common snippets).
 - GitHub CLI (`gh`) is used for all GitHub operations (issues, PRs, comments).

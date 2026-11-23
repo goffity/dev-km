@@ -9,7 +9,8 @@ description: Run tests, build, code review and create PR with issue tracking
 ## Usage
 
 ```
-/pr
+/pr                # ticket resolve จากชื่อ branch
+/pr RUAYS-1234     # ระบุ ticket เอง (หรือ #123 สำหรับ GitHub issue)
 ```
 
 ## Flow
@@ -26,20 +27,30 @@ make test → make build → Code Review → Create PR
 
 ## Instructions
 
-### Step 0: Read Current Focus
+### Step 0: Resolve Ticket
 
 ```bash
 export TZ='Asia/Bangkok'
 echo "=== Current Focus ==="
-cat docs/current.md
-
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
-TASK=$(grep "^TASK:" docs/current.md | cut -d: -f2-)
-echo "Issue: #$ISSUE"
-echo "Task: $TASK"
+# 1) argument  2) ชื่อ branch — exit 1 = ไม่เจอ, 2 = argument กำกวม
+if ISSUE=$(~/.claude/skills/dev-km/scripts/current-ticket.sh "$ARGUMENTS"); then
+  echo "ticket: $ISSUE"
+  # TASK = title จาก tracker (source of truth)
+  case "$ISSUE" in
+    \#*) gh issue view "${ISSUE#\#}" --json title -q .title ;;
+    *)   ./scripts/jira-client.sh get "$ISSUE" | jq -r .summary ;;
+  esac
+else
+  echo "STOP: ask the user which ticket (exit 1 = none found, 2 = argument ambiguous)"
+fi
+git status -sb
 ```
 
-เก็บค่า ISSUE และ TASK ไว้ใช้ตลอด flow
+**exit ≠ 0 → หยุดแล้วถาม user ว่า ticket อะไร** (หรือให้รัน `/pr RUAYS-1234`) — ห้ามเดา, ห้ามทำต่อด้วย ticket ว่าง
+
+**Bash variables ไม่ persist ข้าม tool call** — หลัง Step 0 ให้เขียน ticket ที่ยืนยันแล้วแบบ literal ลงในทุก snippet ถัดไป
+(Jira เช่น `ISSUE="RUAYS-1741"`; GitHub ใช้เลขเปล่า เช่น `ISSUE="123"` สำหรับ `gh issue comment` / `Fixes #$ISSUE`)
+และ `TASK="<title จาก Step 0>"` — ห้าม resolve ซ้ำ และห้ามพึ่ง `$ISSUE` / `$TASK` จาก tool call ก่อน
 
 ### Step 1: Run Tests
 
@@ -47,7 +58,7 @@ echo "Task: $TASK"
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 
 gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🧪 Running Tests
@@ -77,7 +88,7 @@ echo "Exit code: $TEST_EXIT_CODE"
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 
 gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🧪 Tests Failed ❌
@@ -99,7 +110,7 @@ EOF
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 
 gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🧪 Tests Passed ✅
@@ -131,7 +142,7 @@ echo "Exit code: $BUILD_EXIT_CODE"
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 
 gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🏗️ Build Failed ❌
@@ -153,7 +164,7 @@ EOF
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 
 gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🏗️ Build Passed ✅
@@ -172,7 +183,7 @@ EOF
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 
 gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🔍 Code Review Started
@@ -230,7 +241,7 @@ Pass / Fail with reason"
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 
 gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🔍 Code Review Failed ❌
@@ -273,7 +284,7 @@ After fixing, output a summary of changes made."
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 
 gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🔧 Auto-fix Applied
@@ -294,7 +305,7 @@ EOF
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 
 gh issue comment $ISSUE --body "$(cat <<EOF
 ## 🔍 Code Review Passed ✅
@@ -328,8 +339,8 @@ git push -u origin $(git branch --show-current)
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
-TASK=$(grep "^TASK:" docs/current.md | cut -d: -f2- | xargs)
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
+TASK="<title from tracker — Step 0>"
 BRANCH=$(git branch --show-current)
 
 # Determine PR type from task or branch
@@ -381,7 +392,7 @@ EOF
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0>"   # literal — do not re-resolve
 PR_URL=$(gh pr view --json url -q .url)
 
 gh issue comment $ISSUE --body "$(cat <<EOF

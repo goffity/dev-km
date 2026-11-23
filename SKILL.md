@@ -88,8 +88,7 @@ kb/                          # symlink to Obsidian second-brain vault
 docs/                        # repo-local, NOT in vault
 ├── auto-captured/           # Auto-capture output
 ├── shared-knowledge/        # /share output
-├── logs/                    # Activity log
-└── current.md               # Current focus state (STATE/TASK/ISSUE/BRANCH/LANGUAGE)
+└── logs/                    # Activity log
 ```
 
 > `kb/` = symlink to the Obsidian vault. Legacy `docs/{learnings,knowledge-base,retrospective,...}` paths are deprecated.
@@ -102,14 +101,19 @@ docs/                        # repo-local, NOT in vault
 
 ## Language Support
 
-Output language is configured via `LANGUAGE` field in `docs/current.md`.
+Output language is a project setting: the project's CLAUDE.md, else env `DEVKM_LANG`, else `en`.
 
 | Value | Behavior |
 |-------|----------|
 | `en` (default) | All generated output in English |
 | `th` | Generated output in Thai (commit messages stay English) |
 
-Set during `/focus` or manually edit `docs/current.md`. See `references/language-guide.md` for translation reference.
+See `references/bash-helpers.md` → Language Detection, and `references/language-guide.md` for translation reference.
+
+## Focus Context
+
+The current ticket is resolved per session by `scripts/current-ticket.sh` (argument → branch name → ask the user).
+Title/status come from the tracker (Jira / GitHub). `docs/current.md` is no longer read or written.
 
 ## References
 

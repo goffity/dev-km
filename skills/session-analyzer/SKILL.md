@@ -37,7 +37,18 @@ echo "Time: $(date '+%H:%M:%S')"
 echo "Branch: $(git branch --show-current)"
 
 echo "=== Current Focus ==="
-cat docs/current.md 2>/dev/null || echo "No focus set"
+if ISSUE=$(~/.claude/skills/dev-km/scripts/current-ticket.sh); then
+  echo "ticket: $ISSUE"
+  case "$ISSUE" in
+    \#*) gh issue view "${ISSUE#\#}" --json title,state ;;
+    RUAYS-[0-9]*) ~/.claude/skills/dev-km/scripts/jira-client.sh get "$ISSUE"
+                  ls kb/00-inbox/*"$ISSUE"[!0-9]*.md 2>/dev/null ;;   # kb working note, if any
+    *) ~/.claude/skills/dev-km/scripts/jira-client.sh get "$ISSUE" ;;
+  esac
+else
+  echo "No focus set (exit 1 = none, 2 = ambiguous) — ask the user if the retro needs a ticket"
+fi
+git status -sb
 ```
 
 ### Step 2: Analyze Git Changes

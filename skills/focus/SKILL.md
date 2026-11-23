@@ -33,8 +33,16 @@ user-invocable: true
 
 ```bash
 export TZ='Asia/Bangkok'
-echo "=== Current Focus ==="
-cat docs/current.md
+echo "=== Current Focus (from branch) ==="
+if ISSUE=$(~/.claude/skills/dev-km/scripts/current-ticket.sh); then
+  echo "ticket: $ISSUE"
+  case "$ISSUE" in
+    \#*) gh issue view "${ISSUE#\#}" --json title,state ;;
+    *)   ~/.claude/skills/dev-km/scripts/jira-client.sh get "$ISSUE" ;;   # summary/status
+  esac
+else
+  echo "no ticket on this branch (exit 1 = none, 2 = ambiguous) → new focus"
+fi
 
 echo ""
 echo "=== Git Status ==="
@@ -44,12 +52,16 @@ git status --short
 
 ### Step 2: Handle Existing Focus
 
-ถ้า `STATE` ไม่ใช่ `ready` หรือ `completed`:
+> `docs/current.md` is no longer read or written — focus = the ticket in the current branch name.
+
+ถ้า current branch resolve เป็น ticket ได้ (Step 1, exit 0) → ใช้ title/status จาก tracker (output ของ Step 1) แล้วถาม
+(exit 2 = branch มีหลาย ticket → ถาม user ว่าตัวไหน; exit 1 = ไม่มี focus → ไป Step 3):
 
 ```
-มี focus อยู่แล้ว:
-TASK: [current task]
-STATE: [current state]
+มี focus อยู่แล้ว (จาก branch):
+ISSUE: [ticket]
+TASK: [title from tracker]
+STATE: [status from tracker]
 
 ต้องการ:
 1. ทำต่องานเดิม (keep)
@@ -69,22 +81,8 @@ STATE: [current state]
 
 ### Step 3.3: Check Language Setting
 
-```bash
-CURRENT_LANG=$(grep "^LANGUAGE:" docs/current.md 2>/dev/null | cut -d: -f2 | xargs)
-echo "Current language: ${CURRENT_LANG:-not set}"
-```
-
-ถ้า LANGUAGE ยังไม่ได้ตั้งค่า (ไม่มี field หรือค่าเป็น `-`) ให้ถามผู้ใช้ด้วย AskUserQuestion:
-
-```
-ภาษาสำหรับ output (Language for generated output):
-1. English (en)
-2. ภาษาไทย (th)
-```
-
-เก็บค่าที่เลือกไว้ใช้ใน Step 7
-
-ถ้ามีค่าอยู่แล้ว → ใช้ค่าเดิม ไม่ต้องถามซ้ำ
+ภาษาเป็น project setting — ตาม CLAUDE.md ของ project (fallback `DEVKM_LANG`, then `en`)
+ดู `references/bash-helpers.md` → Language Detection. ไม่ต้องถาม user และไม่ต้องเก็บค่าไว้ในไฟล์
 
 ### Step 3.5: Choose Issue Tracker
 
@@ -116,7 +114,7 @@ For Jira-specific paths (B and C), see `jira-paths.md`.
 
 ## Language Setting
 
-> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
+> **Language:** follow the project's CLAUDE.md (fallback `DEVKM_LANG`, then `en`) — see `references/bash-helpers.md` → Language Detection. If Thai, translate output per `references/language-guide.md`.
 
 ---
 
@@ -260,36 +258,6 @@ fi
 
 ## Step 7: Update Files
 
-**Update `docs/current.md`:**
-
-For GitHub:
-```bash
-export TZ='Asia/Bangkok'
-cat > docs/current.md << EOF
-STATE: working
-TASK: [task description from user]
-SINCE: $(date '+%Y-%m-%d %H:%M')
-ISSUE: #[issue-number]
-BRANCH: [type]/[issue-number]-[short-slug]
-LANGUAGE: [selected-language from Step 3.3, default: en]
-EOF
-```
-
-For Jira:
-```bash
-export TZ='Asia/Bangkok'
-cat > docs/current.md << EOF
-STATE: working
-TASK: [ISSUE_KEY] - [summary]
-SINCE: $(date '+%Y-%m-%d %H:%M')
-ISSUE: [ISSUE_KEY]
-BRANCH: [type]/[ISSUE_KEY]-[short-slug]
-JIRA_URL: https://[domain]/browse/[ISSUE_KEY]
-LANGUAGE: [selected-language from Step 3.3, default: en]
-PLAN: [path to plan file, if any]
-EOF
-```
-
 **Append to `docs/logs/activity.log`:**
 
 ```bash
@@ -347,9 +315,7 @@ echo "$(date '+%Y-%m-%d %H:%M') | working | [task description] ([issue-id])" >> 
 **Title:** [type]: [title]
 **Branch:** [type]/[issue-number]-[short-slug]
 
-STATE: working
-TASK: [task]
-SINCE: [timestamp]
+Status: [state from `gh issue view` — e.g. OPEN]
 
 ### Acceptance Criteria
 - [ ] [criteria 1]
@@ -372,10 +338,6 @@ SINCE: [timestamp]
 **Summary:** [summary]
 **URL:** https://[domain]/browse/[ISSUE_KEY]
 **Branch:** [type]/[ISSUE_KEY]-[short-slug]
-
-STATE: working
-TASK: [ISSUE_KEY] - [summary]
-SINCE: [timestamp]
 
 Status: In Progress
 Assigned to: you

@@ -276,7 +276,6 @@ After running `init.sh`, your project will have:
 ```
 project/
 └── docs/
-    ├── current.md           # Current focus state
     ├── WIP.md               # Work in progress (paused tasks)
     ├── logs/
     │   └── activity.log     # Activity history
@@ -507,7 +506,7 @@ tail -f ~/.pr-review-claude-*.log
 
 ## Language Support
 
-รองรับการสร้าง output เป็นภาษาไทยหรือภาษาอังกฤษ ผ่าน `LANGUAGE` field ใน `docs/current.md`
+รองรับการสร้าง output เป็นภาษาไทยหรือภาษาอังกฤษ — ภาษาเป็น project setting (ไม่อ่านจาก `docs/current.md` แล้ว) ดู `references/bash-helpers.md` → Language Detection
 
 | Value | Behavior |
 |-------|----------|
@@ -516,13 +515,25 @@ tail -f ~/.pr-review-claude-*.log
 
 ### ตั้งค่า
 
-**อัตโนมัติ:** `/focus` จะถาม language preference เมื่อเริ่ม session ใหม่
+1. CLAUDE.md ของ project / user instructions (เช่น "Respond in Thai") → ใช้ตามนั้น
+2. ไม่งั้น env `DEVKM_LANG` (`th` | `en`):
 
-**Manual:** แก้ไข `docs/current.md` โดยตรง:
+```bash
+export DEVKM_LANG=th
+```
 
-```
-LANGUAGE: th
-```
+3. ไม่งั้น `en`
+
+## Ticket Resolution
+
+แต่ละ session resolve ticket เอง (ไม่มี state file) ด้วย `scripts/current-ticket.sh`: argument → ชื่อ branch → ถาม user
+
+| Env | Default | ความหมาย |
+|-----|---------|----------|
+| `DEVKM_TICKET_PREFIX` | `RUAYS` | Jira project key ที่ยอมรับ (ERE alternation, case-insensitive) เช่น `export DEVKM_TICKET_PREFIX='RUAYS\|OPS'` |
+
+- Exit code: `0` เจอ 1 ticket · `1` ไม่เจอ · `2` argument กำกวม/parse ไม่ได้ (ไม่ fallback ไป branch) — ถ้า ≠ 0 skill จะหยุดแล้วถาม
+- GitHub issue resolve ได้เฉพาะ argument `#123`/`123` หรือ branch แบบ `<type>/<n>-slug`
 
 ### สิ่งที่แปลเป็นไทย
 

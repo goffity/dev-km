@@ -241,7 +241,7 @@ Type: [type]
 > **Note:** ไม่มีคำสั่ง `/jira start` โดยตรง ให้ใช้ `/focus` แล้วเลือก "Jira (existing)" แทน
 > หรือทำ workflow ด้านล่างนี้ด้วยตัวเอง
 
-เริ่มทำงาน Jira issue - ดึงมาเป็น current focus
+เริ่มทำงาน Jira issue - ดึงมาเป็น current focus (ticket ของ session = ชื่อ branch ไม่มี state file)
 
 **Step 1: ดึงข้อมูล issue**
 
@@ -262,28 +262,14 @@ Type: [type]
 git checkout -b [type]/[ISSUE_KEY]-[slug]
 ```
 
-**Step 3: Update docs/current.md**
-
-```bash
-export TZ='Asia/Bangkok'
-cat > docs/current.md << EOF
-STATE: working
-TASK: [ISSUE_KEY] - [summary]
-SINCE: $(date '+%Y-%m-%d %H:%M')
-ISSUE: [ISSUE_KEY]
-BRANCH: [branch-name]
-JIRA_URL: [url]
-EOF
-```
-
-**Step 4: Update activity.log**
+**Step 3: Update activity.log**
 
 ```bash
 export TZ='Asia/Bangkok'
 echo "$(date '+%Y-%m-%d %H:%M') | working | [ISSUE_KEY] - [summary]" >> docs/logs/activity.log
 ```
 
-**Step 5: Transition issue to "In Progress" (if available)**
+**Step 4: Transition issue to "In Progress" (if available)**
 
 ```bash
 # Get available transitions
@@ -293,7 +279,7 @@ echo "$(date '+%Y-%m-%d %H:%M') | working | [ISSUE_KEY] - [summary]" >> docs/log
 ./scripts/jira-client.sh transition [ISSUE_KEY] [transition_id]
 ```
 
-**Step 6: Assign to self**
+**Step 5: Assign to self**
 
 ```bash
 ./scripts/jira-client.sh assign [ISSUE_KEY] me

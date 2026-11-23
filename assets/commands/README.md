@@ -355,6 +355,8 @@ ready ─────────────▶ working ──/td done──▶
                      blocked
 ```
 
+> ticket ของ session = argument → ชื่อ branch (`scripts/current-ticket.sh`), state/status มาจาก Jira/GitHub — ไม่มี state file (`docs/current.md` เลิกใช้แล้ว)
+
 | State | Meaning | Next Action |
 |-------|---------|-------------|
 | `ready` | ว่าง รอ task | `/focus` เพื่อตั้งงาน |
@@ -369,7 +371,6 @@ ready ─────────────▶ working ──/td done──▶
 
 ```
 docs/
-├── current.md                    # STATE, TASK, SINCE, ISSUE
 ├── logs/
 │   └── activity.log              # timestamp | state | task
 ├── retrospective/

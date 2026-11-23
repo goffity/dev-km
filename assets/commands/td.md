@@ -13,6 +13,7 @@ description: Post-task review and retrospective with auto-capture and session me
 /td done      # งานเสร็จแล้ว
 /td pending   # ยังไม่เสร็จ รอทำต่อ
 /td blocked   # ติดปัญหา
+/td done RUAYS-1234   # ระบุ ticket เองได้ (ไม่งั้น resolve จากชื่อ branch)
 ```
 
 ## Output
@@ -22,7 +23,7 @@ description: Post-task review and retrospective with auto-capture and session me
 ## Flow
 
 ```
-/td → Determine Status → Auto-capture → Gather Info → Comment Issue → Create Retrospective → Update Focus → Commit Docs → Confirm
+/td → Determine Status → Auto-capture → Gather Info → Comment Issue → Create Retrospective → Activity Log → Commit Docs → Confirm
 ```
 
 **Note:** สำหรับ tests, build, code review และสร้าง PR ให้ใช้ `/pr` ก่อนรัน `/td`
@@ -34,8 +35,20 @@ description: Post-task review and retrospective with auto-capture and session me
 ```bash
 export TZ='Asia/Bangkok'
 echo "=== Current Focus ==="
-cat docs/current.md
+if ISSUE=$(~/.claude/skills/dev-km/scripts/current-ticket.sh "$ARGUMENTS"); then
+  echo "ticket: $ISSUE | branch: $(git branch --show-current)"
+  case "$ISSUE" in
+    \#*) gh issue view "${ISSUE#\#}" --json title,state ;;
+    *)   ./scripts/jira-client.sh get "$ISSUE" ;;   # summary/status
+  esac
+else
+  echo "STOP: ask the user which ticket (exit 1 = none found, 2 = argument ambiguous)"
+fi
 ```
+
+- **exit ≠ 0 → หยุดแล้วถาม user** ว่า ticket อะไร — ห้ามเดา, ห้ามทำต่อด้วย ticket ว่าง
+- TASK = title/summary จาก tracker (output ด้านบน)
+- **Bash variables ไม่ persist ข้าม tool call** — หลัง Step 0 ให้เขียน ticket ที่ยืนยันแล้วแบบ literal (เช่น `RUAYS-1741` หรือ `123` สำหรับ GitHub) ลงในทุก snippet ถัดไป — ห้าม resolve ซ้ำ และห้ามพึ่ง `$ISSUE` จาก step ก่อน
 
 เก็บค่า TASK และ ISSUE ไว้ใช้ใน steps ถัดไป
 
@@ -89,10 +102,10 @@ git status --short
 
 ### Step 4: Add Comment to Issue
 
-**อ่าน issue number จาก `docs/current.md`:**
+**ใช้ ticket ที่ยืนยันแล้วจาก Step 0** (เขียนแบบ literal — ห้าม resolve ซ้ำ):
 
 ```bash
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0, e.g. 123>"
 echo "Issue: #$ISSUE"
 ```
 
@@ -146,21 +159,7 @@ EOF
 
 (ใช้ template ด้านล่าง)
 
-### Step 6: Update Focus & Activity Log
-
-**Update `docs/current.md`:**
-
-```bash
-export TZ='Asia/Bangkok'
-
-# For completed
-cat > docs/current.md << EOF
-STATE: completed
-TASK: [task from original focus]
-SINCE: $(date '+%Y-%m-%d %H:%M')
-ISSUE: #[issue-number]
-EOF
-```
+### Step 6: Activity Log
 
 **Append to `docs/logs/activity.log`:**
 
@@ -179,7 +178,7 @@ echo "$(date '+%Y-%m-%d %H:%M') | completed | [task]" >> docs/logs/activity.log
 export TZ='Asia/Bangkok'
 
 CURRENT_BRANCH=$(git branch --show-current)
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0, e.g. 123>"   # literal — do not re-resolve
 
 echo "=== Current State ==="
 echo "Branch: $CURRENT_BRANCH"
@@ -245,7 +244,6 @@ fi
 git commit -m "$(cat <<'EOF'
 docs: retrospective and session update for [TASK]
 
-- Updated docs/current.md status
 - Added activity log entry
 - Created retrospective: [retrospective-file-path]
 
@@ -304,7 +302,6 @@ fi
 git commit -m "$(cat <<'EOF'
 docs: retrospective and session update for [TASK]
 
-- Updated docs/current.md status
 - Added activity log entry
 - Created retrospective: [retrospective-file-path]
 
@@ -334,7 +331,6 @@ Session documentation update for issue #[issue-number]
 
 ## Changes
 
-- Updated `docs/current.md` status
 - Added activity log entry
 - Created retrospective document
 
