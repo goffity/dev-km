@@ -11,7 +11,8 @@ user-invocable: true
 ## Usage
 
 ```
-/pr
+/pr                # ticket resolved from the branch name
+/pr RUAYS-1234     # or pass the ticket explicitly (Jira key or #123)
 ```
 
 ## Flow
@@ -30,7 +31,7 @@ make test → make build → Code Review → Create PR
 
 ### Language Setting
 
-> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
+> **Language:** follow the project's CLAUDE.md (fallback `DEVKM_LANG`, then `en`) — see `references/bash-helpers.md` → Language Detection. If Thai, translate output per `references/language-guide.md`.
 
 ### Issue Comment Pattern
 
@@ -38,7 +39,7 @@ make test → make build → Code Review → Create PR
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from Step 0, e.g. 123>"   # literal — do not re-resolve
 gh issue comment $ISSUE --body "[template from issue-comments.md]"
 ```
 
@@ -47,13 +48,21 @@ gh issue comment $ISSUE --body "[template from issue-comments.md]"
 ```bash
 export TZ='Asia/Bangkok'
 echo "=== Current Focus ==="
-cat docs/current.md
-
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
-TASK=$(grep "^TASK:" docs/current.md | cut -d: -f2-)
-echo "Issue: #$ISSUE"
-echo "Task: $TASK"
+if ISSUE=$(~/.claude/skills/dev-km/scripts/current-ticket.sh "$ARGUMENTS"); then
+  echo "ticket: $ISSUE | branch: $(git branch --show-current)"
+  case "$ISSUE" in
+    \#*) gh issue view "${ISSUE#\#}" --json title,state ;;
+    *)   ~/.claude/skills/dev-km/scripts/jira-client.sh get "$ISSUE" ;;   # summary/status
+  esac
+else
+  echo "STOP: ask the user which ticket (exit 1 = none found, 2 = argument ambiguous)"
+fi
+git status -sb
 ```
+
+- **exit ≠ 0 → หยุดแล้วถาม user** ว่า ticket อะไร — (หรือให้รัน `/pr RUAYS-1234`) — ห้ามเดา, ห้ามใช้ค่าจาก `docs/current.md`, ห้ามทำต่อด้วย ticket ว่าง
+- TASK = title/summary จาก tracker (output ด้านบน)
+- **Bash variables ไม่ persist ข้าม tool call** — หลัง Step 0 ให้เขียน ticket ที่ยืนยันแล้วแบบ literal (เช่น `RUAYS-1741` หรือ `123` สำหรับ GitHub) ลงในทุก snippet ถัดไป — ห้าม resolve ซ้ำ และห้ามพึ่ง `$ISSUE` จาก step ก่อน
 
 เก็บค่า ISSUE และ TASK ไว้ใช้ตลอด flow
 
@@ -149,8 +158,8 @@ git push -u origin $(git branch --show-current)
 
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
-TASK=$(grep "^TASK:" docs/current.md | cut -d: -f2- | xargs)
+ISSUE="<confirmed ticket from Step 0, e.g. 123>"   # literal — do not re-resolve
+TASK="<title from tracker — Step 0>"
 
 # Determine PR type from task or branch
 TYPE="feat"

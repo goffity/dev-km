@@ -23,7 +23,7 @@ Document workflows, sequences, and state machines with Mermaid diagrams.
 
 ### Language Setting
 
-> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
+> **Language:** follow the project's CLAUDE.md (fallback `DEVKM_LANG`, then `en`) — see `references/bash-helpers.md` → Language Detection. If Thai, translate output per `references/language-guide.md`.
 
 1. **Parse name** → kebab-case filename
 2. **Ask user** about the flow:

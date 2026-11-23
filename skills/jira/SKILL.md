@@ -265,28 +265,14 @@ Type: [type]
 git checkout -b [type]/[ISSUE_KEY]-[slug]
 ```
 
-**Step 3: Update docs/current.md**
-
-```bash
-export TZ='Asia/Bangkok'
-cat > docs/current.md << EOF
-STATE: working
-TASK: [ISSUE_KEY] - [summary]
-SINCE: $(date '+%Y-%m-%d %H:%M')
-ISSUE: [ISSUE_KEY]
-BRANCH: [branch-name]
-JIRA_URL: [url]
-EOF
-```
-
-**Step 4: Update activity.log**
+**Step 3: Update activity.log**
 
 ```bash
 export TZ='Asia/Bangkok'
 echo "$(date '+%Y-%m-%d %H:%M') | working | [ISSUE_KEY] - [summary]" >> docs/logs/activity.log
 ```
 
-**Step 5: Transition issue to "In Progress" (if available)**
+**Step 4: Transition issue to "In Progress" (if available)**
 
 ```bash
 # Get available transitions
@@ -296,7 +282,7 @@ echo "$(date '+%Y-%m-%d %H:%M') | working | [ISSUE_KEY] - [summary]" >> docs/log
 ./scripts/jira-client.sh transition [ISSUE_KEY] [transition_id]
 ```
 
-**Step 6: Assign to self**
+**Step 5: Assign to self**
 
 ```bash
 ./scripts/jira-client.sh assign [ISSUE_KEY] me

@@ -12,7 +12,7 @@ Analyze changes and create clean, atomic commits. Self-contained — no plugin d
 
 ### Language Setting
 
-> Check `LANGUAGE` in `docs/current.md`. If `th`, translate output per `references/language-guide.md`. See `references/bash-helpers.md` for detection snippet.
+> **Language:** follow the project's CLAUDE.md (fallback `DEVKM_LANG`, then `en`) — see `references/bash-helpers.md` → Language Detection. If Thai, translate output per `references/language-guide.md`.
 
 ### Step 0: TDD Loop Check
 
@@ -72,7 +72,17 @@ git log --oneline -n <N>
 
 After commits are created, automatically comment on the related GitHub issue:
 
-1. **Find Issue Number** - Check `docs/current.md` for `ISSUE: #N` or extract from branch name/commits
+1. **Find Issue Number** (argument → branch name):
+
+```bash
+if ISSUE=$(~/.claude/skills/dev-km/scripts/current-ticket.sh --hint "$ARGUMENTS"); then
+  echo "ticket: $ISSUE"
+else
+  echo "STOP: ask the user which ticket (exit 1 = none found, 2 = argument ambiguous)"
+fi
+```
+
+   exit ≠ 0 → stop and ask the user (or skip the comment if they say there is none) — never guess, never comment with an empty ticket. Write the confirmed number literally into the `gh issue comment` below.
 2. **If issue found**, comment with:
 
 ```bash

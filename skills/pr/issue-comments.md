@@ -1,11 +1,11 @@
 # PR Issue Comment Templates
 
-Templates for `gh issue comment` during the `/pr` flow. Use `references/bash-helpers.md` for ISSUE/TZ extraction.
+Templates for `gh issue comment` during the `/pr` flow. The ticket is resolved once in `/pr` Step 0 (see `references/bash-helpers.md` → Focus Context) and written literally into each snippet.
 
 **Base pattern:**
 ```bash
 export TZ='Asia/Bangkok'
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from /pr Step 0, e.g. 123>"   # literal — do not re-resolve
 gh issue comment $ISSUE --body "$(cat <<'EOF'
 [template body]
 EOF

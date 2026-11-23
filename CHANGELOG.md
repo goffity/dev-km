@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`scripts/current-ticket.sh`** — resolves the session's ticket (`RUAYS-1234` / `#123`) from an explicit argument,
+  then the current branch name. Exit codes: `0` found · `1` nothing to go on · `2` argument given but ambiguous/unparseable
+  (no branch fallback). Skills stop and ask the user on any non-zero exit (never guess).
+  - **`DEVKM_TICKET_PREFIX`** (default `RUAYS`, case-insensitive ERE alternation, e.g. `RUAYS|OPS`) — only these Jira
+    project keys are recognised, so `UTF-8`, `SHA-256`, dates etc. are never mistaken for tickets. Status words
+    (`done`, `pending`, …) in the argument are ignored.
+  - GitHub issue numbers resolve only from a bare `#n` / `n` argument or a `<type>/<n>-slug` branch.
+  - `--hint` (used by `/commit`): the argument is free text — if it contains nothing ticket-like, resolve from the
+    branch instead of exiting 2. Snippets always pass `"$ARGUMENTS"` quoted (`#` / `'` in user text).
+
 ### Changed
+- **Retired `docs/current.md` as the source of truth** — it was one shared file that parallel sessions overwrote,
+  so `/pr` and `/td` could comment on the wrong ticket. No skill under `skills/` or command
+  in `assets/commands/` reads or writes it any more.
+  - Ticket = argument → branch name (`current-ticket.sh`) → ask; `/pr`, `/td`, `/recap` accept the ticket as an argument (e.g. `/pr RUAYS-1234`).
+  - TASK/STATE come from the tracker (`jira-client.sh get` / `gh issue view`); BRANCH from `git branch --show-current`.
+  - Language is a project setting: project CLAUDE.md → `DEVKM_LANG` → `en` (see `references/bash-helpers.md` → Language Detection). **Behavior change:** `/focus` no longer asks for a language; projects whose CLAUDE.md has no language line fall back to `en` unless `DEVKM_LANG` is set.
+  - `/recap` reworked: resolve ticket (or list candidate branches / kb `00-inbox` notes and ask) → tracker status → branch check → kb working note. The "move task to WIP.md + reset current.md" flow is removed.
+  - Skills resolve the ticket once (Step 0) and write it literally into later snippets (Bash state does not persist between tool calls); kb paths built from a ticket are guarded (`RUAYS-[0-9]*` only) and use bounded globs (`*"$KEY"[!0-9]*.md`).
+  - `/focus`, `/td`, `/jira` no longer write `docs/current.md`; `scripts/init.sh` no longer creates it. `docs/logs/activity.log` is unchanged.
 - **`/pr-review` Triage Gate (Step 5.5)** — every review comment (human or AI) now gets a verdict
   (`ACCEPT` / `REJECT` / `DEFER` / `NEEDS-HUMAN`) backed by evidence (test/build output, `file:line`, KB/ADR path,
   DB constraint) before any code change. Risk zones (money flow, idempotency, concurrency, data layer, contracts,

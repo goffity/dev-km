@@ -2,7 +2,7 @@
 
 Step 7 detail from the `/td` command — handles committing docs based on PR status.
 
-> **Language:** Follow the language setting from `docs/current.md` as described in the parent `/td` skill. If `LANGUAGE: th`, generate PR descriptions and status text in Thai per `references/language-guide.md`. Commit messages remain in English.
+> **Language:** Follow the project's language setting (CLAUDE.md, fallback `DEVKM_LANG`, then `en` — see `references/bash-helpers.md` → Language Detection) as described in the parent `/td` skill. If Thai, generate PR descriptions and status text in Thai per `references/language-guide.md`. Commit messages remain in English.
 
 ## Step 7.1: Check Branch and PR Status
 
@@ -10,7 +10,7 @@ Step 7 detail from the `/td` command — handles committing docs based on PR sta
 export TZ='Asia/Bangkok'
 
 CURRENT_BRANCH=$(git branch --show-current)
-ISSUE=$(grep "^ISSUE:" docs/current.md | cut -d: -f2 | tr -d ' #')
+ISSUE="<confirmed ticket from /td Step 0, e.g. 123>"   # literal — do not re-resolve
 
 echo "=== Current State ==="
 echo "Branch: $CURRENT_BRANCH"
@@ -70,7 +70,6 @@ fi
 git commit -m "$(cat <<'EOF'
 docs: retrospective and session update for [TASK]
 
-- Updated docs/current.md status
 - Added activity log entry
 - Created retrospective: [retrospective-file-path]
 
@@ -126,7 +125,6 @@ fi
 git commit -m "$(cat <<'EOF'
 docs: retrospective and session update for [TASK]
 
-- Updated docs/current.md status
 - Added activity log entry
 - Created retrospective: [retrospective-file-path]
 
@@ -156,7 +154,6 @@ Session documentation update for issue #[issue-number]
 
 ## Changes
 
-- Updated `docs/current.md` status
 - Added activity log entry
 - Created retrospective document
 

@@ -1,4 +1,4 @@
-> **Language:** If `LANGUAGE: th` in `docs/current.md`, translate all section headings per `references/language-guide.md`.
+> **Language:** If the project language is Thai (CLAUDE.md, fallback `DEVKM_LANG` — see `references/bash-helpers.md` → Language Detection), translate all section headings per `references/language-guide.md`.
 
 # /td Template
 

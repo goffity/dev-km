@@ -2,7 +2,7 @@
 
 Steps to execute after PR is created successfully.
 
-> **Language:** Follow the language setting from `docs/current.md` as described in the parent `/pr` skill. If `LANGUAGE: th`, generate confirmation and status text in Thai per `references/language-guide.md`.
+> **Language:** Follow the project's language setting (CLAUDE.md, fallback `DEVKM_LANG`, then `en` — see `references/bash-helpers.md` → Language Detection) as described in the parent `/pr` skill. If Thai, generate confirmation and status text in Thai per `references/language-guide.md`.
 
 ## Step 5.5: Start PR Review Polling with Auto-Respond
 

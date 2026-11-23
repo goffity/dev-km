@@ -78,21 +78,20 @@ Load context from your previous session.
 ```
 
 **What it does:**
-1. Shows current focus state (STATE, TASK, ISSUE, BRANCH)
+1. Resolves the ticket from the argument or branch name (asks if unknown), then shows tracker title/status and branch
 2. Displays recent activity log
 3. Shows git status and recent commits
-4. Asks if you want to continue or start new task
+4. Shows the kb working note for the ticket (if any) and suggests continue / switch branch / `/focus`
 
 **Output example:**
 ```
 ## Session Recap
 
 ### Current Focus
-STATE: working
-TASK: Implement user authentication
-SINCE: 2025-01-20 14:30
 ISSUE: #42
-BRANCH: feat/42-user-auth
+TITLE: Implement user authentication
+STATUS: OPEN
+BRANCH: feat/42-user-auth (matches ticket)
 
 ### Recent Activity
 2025-01-20 14:30 | working | Implement user authentication (#42)
@@ -120,8 +119,7 @@ Create a GitHub issue and start working.
 1. Asks for task details (type, overview, acceptance criteria)
 2. Creates GitHub issue with structured format
 3. Creates feature branch (`feat/123-dark-mode`)
-4. Updates `docs/current.md` with focus state
-5. Logs activity
+4. Logs activity (focus = the ticket in the branch name; no state file)
 
 **Interactive flow:**
 ```
@@ -148,9 +146,7 @@ Issue Created: #123
 Title: feat: Implement dark mode toggle
 Branch: feat/123-dark-mode
 
-STATE: working
-TASK: Implement dark mode toggle
-SINCE: 2025-01-20 15:00
+Status: OPEN
 
 พร้อมเริ่มงาน! ใช้ /td เมื่อจบ session
 ```
@@ -609,7 +605,6 @@ project/
 │   ├── commands/          # Slash commands
 │   └── agents/            # AI agents
 └── docs/
-    ├── current.md         # Current focus state
     ├── WIP.md            # Paused tasks
     ├── logs/
     │   └── activity.log  # Activity history

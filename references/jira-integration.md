@@ -375,14 +375,9 @@ Assign issue
 
 ### /recap + Jira
 
-`/recap` จะแสดง Jira URL ถ้า `docs/current.md` มี `JIRA_URL`:
-
-```
-STATE: working
-TASK: PROJ-123 - Fix login bug
-ISSUE: PROJ-123
-JIRA_URL: https://mycompany.atlassian.net/browse/PROJ-123
-```
+`/recap` resolve ticket จาก argument หรือชื่อ branch (`scripts/current-ticket.sh`) เช่น `fix/PROJ-123-login-bug` → `PROJ-123`
+(Jira project key ต้องอยู่ใน `DEVKM_TICKET_PREFIX` เช่น `export DEVKM_TICKET_PREFIX='PROJ'` — default `RUAYS`; exit ≠ 0 → ถาม user)
+แล้วดึง summary/status จาก Jira (`jira-client.sh get PROJ-123`) และแสดง Jira URL (`https://mycompany.atlassian.net/browse/PROJ-123`)
 
 ### Branch Naming with Jira
 

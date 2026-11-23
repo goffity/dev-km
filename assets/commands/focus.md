@@ -1,5 +1,5 @@
 ---
-description: Set current focus - update docs/current.md and log to activity.log
+description: Set current focus - create issue + feature branch and log to activity.log
 ---
 
 # Set Focus
@@ -19,7 +19,16 @@ description: Set current focus - update docs/current.md and log to activity.log
 ```bash
 export TZ='Asia/Bangkok'
 echo "=== Current Focus ==="
-cat docs/current.md
+# ticket ของ session นี้ resolve จากชื่อ branch (ไม่อ่าน docs/current.md แล้ว — shared file ที่ session อื่นเขียนทับ)
+if ISSUE=$(~/.claude/skills/dev-km/scripts/current-ticket.sh); then
+  echo "ticket: $ISSUE"
+  case "$ISSUE" in
+    \#*) gh issue view "${ISSUE#\#}" --json title,state ;;
+    *)   ./scripts/jira-client.sh get "$ISSUE" ;;   # summary/status
+  esac
+else
+  echo "no ticket on this branch (exit 1 = none, 2 = ambiguous) → new focus"
+fi
 
 echo ""
 echo "=== Git Status ==="
@@ -29,12 +38,12 @@ git status --short
 
 ### Step 2: Handle Existing Focus
 
-ถ้า `STATE` ไม่ใช่ `ready` หรือ `completed`:
+ถ้า Step 1 exit 0 (branch ปัจจุบันมี ticket) และ status ใน Jira/GitHub ยังไม่ Done/closed (exit 2 = หลาย ticket → ถาม user; exit 1 → ไป Step 3):
 
 ```
 มี focus อยู่แล้ว:
-TASK: [current task]
-STATE: [current state]
+TICKET: [ISSUE] - [summary/title จาก tracker]
+STATUS: [status จาก tracker]
 
 ต้องการ:
 1. ทำต่องานเดิม (keep)
@@ -304,34 +313,9 @@ fi
 - ตัดคำที่ไม่จำเป็นออก (a, an, the)
 - จำกัดความยาวไม่เกิน 30 ตัวอักษร
 
-## Step 7: Update Files
+## Step 7: Log Activity
 
-**Update `docs/current.md`:**
-
-For GitHub:
-```bash
-export TZ='Asia/Bangkok'
-cat > docs/current.md << EOF
-STATE: working
-TASK: [task description from user]
-SINCE: $(date '+%Y-%m-%d %H:%M')
-ISSUE: #[issue-number]
-BRANCH: [type]/[issue-number]-[short-slug]
-EOF
-```
-
-For Jira:
-```bash
-export TZ='Asia/Bangkok'
-cat > docs/current.md << EOF
-STATE: working
-TASK: [ISSUE_KEY] - [summary]
-SINCE: $(date '+%Y-%m-%d %H:%M')
-ISSUE: [ISSUE_KEY]
-BRANCH: [type]/[ISSUE_KEY]-[short-slug]
-JIRA_URL: https://[domain]/browse/[ISSUE_KEY]
-EOF
-```
+ไม่ต้องเขียน state file — ticket ของ session ถูก resolve จากชื่อ branch (`current-ticket.sh`) และ status อยู่ที่ Jira/GitHub
 
 **Append to `docs/logs/activity.log`:**
 
@@ -366,10 +350,6 @@ echo "$(date '+%Y-%m-%d %H:%M') | working | [task description] ([issue-id])" >> 
 **Title:** [type]: [title]
 **Branch:** [type]/[issue-number]-[short-slug]
 
-STATE: working
-TASK: [task]
-SINCE: [timestamp]
-
 ### Acceptance Criteria
 - [ ] [criteria 1]
 - [ ] [criteria 2]
@@ -386,10 +366,6 @@ SINCE: [timestamp]
 **Summary:** [summary]
 **URL:** https://[domain]/browse/[ISSUE_KEY]
 **Branch:** [type]/[ISSUE_KEY]-[short-slug]
-
-STATE: working
-TASK: [ISSUE_KEY] - [summary]
-SINCE: [timestamp]
 
 Status: In Progress
 Assigned to: you
