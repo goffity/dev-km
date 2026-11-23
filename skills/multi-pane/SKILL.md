@@ -49,7 +49,9 @@ Write the brief to a scratchpad file, then:
 $MP/mp-send.sh "$P2" brief-p2.md     # pastes, presses Enter until the pane shows "esc to interrupt"
 ```
 Every brief must contain: scope (repos/branches, worktree rule — never touch shared checkouts), constraints (tests/build,
-no --no-verify, PR via /pr, don't merge), review gate (Copilot + /pr-review), and **the marker to print when done**:
+no --no-verify, PR via /pr, don't merge), **agent pipeline before the PR** (if the workspace CLAUDE.md defines one, e.g. kol:
+`kol-go-backend-dev → kol-build-validator → kol-code-reviewer` — the owner pane runs it and fixes 🔴 findings before `/pr`;
+the reviewer gets only the diff + ticket, not the writer's summary), review gate (Copilot + /pr-review), and **the marker to print when done**:
 - owner: `OWNER-DONE <repo>#<PR> <short result>` (or `OWNER-FIXING <repo>#<PR>`)
 - QA: `QA-RESULT <repo>#<PR> PASS|FAIL <list>`
 - either: `NEED-INPUT <question>` if blocked on a user decision
